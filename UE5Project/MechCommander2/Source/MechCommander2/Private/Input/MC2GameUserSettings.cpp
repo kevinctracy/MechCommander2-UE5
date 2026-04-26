@@ -97,5 +97,17 @@ void UMC2GameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
 void UMC2GameUserSettings::LoadSettings(bool bForceReload)
 {
 	Super::LoadSettings(bForceReload);
-	// KeyBindings array is populated automatically from .ini via UPROPERTY(Config)
+	// KeyBindings and ColorblindMode populated automatically from .ini via UPROPERTY(Config)
+}
+
+// ---------- Colorblind mode ----------
+
+void UMC2GameUserSettings::SetColorblindMode(EMC2ColorblindMode Mode)
+{
+	if (ColorblindMode != Mode)
+	{
+		ColorblindMode = Mode;
+		SaveConfig();
+		OnColorblindSettingsChanged.Broadcast();
+	}
 }

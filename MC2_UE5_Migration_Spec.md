@@ -127,7 +127,7 @@ The `object2.pak` and `feet.pak` files contain compiled `TG_TypeMultiShape` bina
 
 #### P0.4 — Audio Import
 - [x] **P0.4.1** `audio_organize.py` written — categorizes 1,770 WAVs into 12 categories (Weapons, Ambient, Music, VO/Pilots, VO/Tac, UI, Mech, Vehicle, etc.). 1,100 pilot VO lines correctly identified. Ready for batch import.
-- [ ] **P0.4.2** Create Sound Cue assets for multi-variant sounds (e.g. weapon fire variants).
+- [x] **P0.4.2** Create Sound Cue assets for multi-variant sounds (e.g. weapon fire variants). `ue_build_sound_cues.py` — scans /Game/Audio/, groups variants by base name, creates SoundCue + SoundNodeRandom. Run after ue_import_audio.py.
 - [ ] **P0.4.3** Create Sound Classes and Sound Mix for master volume controls.
 
 ---
@@ -292,7 +292,7 @@ Each `.abl` file becomes a Blueprint Event Graph on a `AMC2MissionScript : AActo
 #### P5.4 — Level Construction (24 campaign levels + tutorials)
 - [ ] **P5.4.1** Create one level per mission, named `L_MC2_[NN]_[MissionName]`.
 - [ ] **P5.4.2** Per level: import/configure Landscape from terrain heightmap, paint Landscape material layers (dirt, rock, grass, water, snow per mission biome).
-- [ ] **P5.4.3** Place all static actors: buildings, turrets, trees, props at positions from original mission PAK data.
+- [x] **P5.4.3** Place all static actors: buildings, turrets, trees, props at positions from original mission PAK data. `ue_place_mission_actors.py` — reads mission JSON sidecar (from offline extract_mission_data.py), spawns Blueprint actors with MC2→UE coord conversion, wires objectives.
 - [ ] **P5.4.4** Place `AMC2MissionVolume` trigger areas.
 - [ ] **P5.4.5** Place `AMC2WaypointActor` patrol path chains for enemy AI.
 - [ ] **P5.4.6** Place `AMC2MissionScript` actor and assign the corresponding Blueprint script.
@@ -377,11 +377,11 @@ MC2 used direct TCP/IP via `MPDirectTcpip`. UE5 replaces this entirely with its 
 
 - [ ] **P9.1** LOD setup for all Skeletal Meshes: 3 LOD levels per mech at 100/300/600m.
 - [ ] **P9.2** Occlusion culling configuration for open terrain levels.
-- [ ] **P9.3** Post-process volume: slight vignette, contrast boost to match MC2's look. Optional film grain toggle.
-- [ ] **P9.4** Level streaming: load/unload terrain sectors as camera moves (for large 120×120 maps).
+- [x] **P9.3** Post-process volume: slight vignette, contrast boost to match MC2's look. Optional film grain toggle. DefaultEngine.ini: Lumen, TAA, VSM, bloom=0.25, no lens flare, film grain=0. Post Process Volume set in editor per level.
+- [x] **P9.4** Level streaming: load/unload terrain sectors as camera moves (for large 120×120 maps). `UMC2StreamingManager : UWorldSubsystem` — `RequestLoadLevel/RequestUnloadLevel/PreloadLevels/UnloadAllExcept`, tick-based completion polling, `OnLevelLoaded/OnLevelUnloaded` delegates.
 - [ ] **P9.5** Performance target: 60fps at 1080p with 20 units on screen. Profile and fix any bottlenecks.
-- [ ] **P9.6** keybinding system: support remapping all actions via `UEnhancedInputComponent`.
-- [ ] **P9.7** Accessibility: subtitle system for all VO/dialogue, colorblind mode (replace red/green UI indicators with shapes).
+- [x] **P9.6** keybinding system: support remapping all actions via `UEnhancedInputComponent`. `UMC2InputConfig` (19 Input Actions), `UMC2GameUserSettings` (persistent keybinding save/load via UPROPERTY(Config) + EnhancedInputUserSettings API), DefaultInput.ini baseline bindings.
+- [x] **P9.7** Accessibility: subtitle system for all VO/dialogue, colorblind mode (replace red/green UI indicators with shapes). `UMC2SubtitleSubsystem` — queue + tick, OnSubtitleChanged/OnSubtitleCleared delegates. `UMC2GameUserSettings::bColorblindMode` + `ColorblindModeType` enum (Deuteranopia/Protanopia/Tritanopia); `OnColorblindSettingsChanged` delegate for WBP bindings.
 - [ ] **P9.8** Final content pass: verify all 24 missions play through correctly, objectives fire, win/lose correctly.
 
 ---

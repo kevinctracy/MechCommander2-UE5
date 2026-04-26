@@ -5,6 +5,17 @@
 #include "InputCoreTypes.h"
 #include "MC2GameUserSettings.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnColorblindSettingsChanged);
+
+UENUM(BlueprintType)
+enum class EMC2ColorblindMode : uint8
+{
+	None          UMETA(DisplayName = "Off"),
+	Deuteranopia  UMETA(DisplayName = "Deuteranopia (Red-Green)"),
+	Protanopia    UMETA(DisplayName = "Protanopia (Red-Green, severe)"),
+	Tritanopia    UMETA(DisplayName = "Tritanopia (Blue-Yellow)"),
+};
+
 class UInputAction;
 class UEnhancedInputLocalPlayerSubsystem;
 
@@ -71,6 +82,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Settings|Input")
 	void ApplyKeyBindings(UEnhancedInputLocalPlayerSubsystem* Subsystem);
 
+	// --- Accessibility: Colorblind Mode ---
+
+	// Fired whenever colorblind settings change; WBP binds to this
+	UPROPERTY(BlueprintAssignable, Category = "Settings|Accessibility")
+	FOnColorblindSettingsChanged OnColorblindSettingsChanged;
+
+	UFUNCTION(BlueprintCallable, Category = "Settings|Accessibility")
+	void SetColorblindMode(EMC2ColorblindMode Mode);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Settings|Accessibility")
+	EMC2ColorblindMode GetColorblindMode() const { return ColorblindMode; }
+
+	// Whether UI indicators use shape differentiation instead of only colour
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Settings|Accessibility")
+	bool IsColorblindModeActive() const { return ColorblindMode != EMC2ColorblindMode::None; }
+
+	// Subtitle display
+	UPROPERTY(Config, BlueprintReadWrite, Category = "Settings|Accessibility")
+	bool bSubtitlesEnabled = true;
+
 	// UGameUserSettings interface
 	virtual void ApplySettings(bool bCheckForCommandLineOverrides) override;
 	virtual void LoadSettings(bool bForceReload = false) override;
@@ -78,6 +109,9 @@ public:
 private:
 	UPROPERTY(Config)
 	TArray<FMC2KeyBinding> KeyBindings;
+
+	UPROPERTY(Config)
+	EMC2ColorblindMode ColorblindMode = EMC2ColorblindMode::None;
 
 	// Returns the index in KeyBindings for the given action, or INDEX_NONE
 	int32 FindBindingIndex(const UInputAction* Action) const;
