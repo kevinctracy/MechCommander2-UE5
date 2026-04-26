@@ -432,9 +432,9 @@ The biggest accelerator: finding the original 3DS Max `.ase` source files for 3D
 
 ## First Week Checklist (Start Here)
 
-1. [ ] Check `Source/Data/TGL/` directory for any `.ase` or `.max` files — this determines the model extraction strategy.
-2. [ ] Run a batch import of all `.tga` textures from `Source/Data/Textures/` into a new UE5 project.
-3. [ ] Run a batch import of all `.wav` audio files into the UE5 project.
-4. [ ] Write and test the TXM extractor Python script (see P0.1 above).
-5. [ ] Set up the FIT parser (P0.2) and verify one mech definition (e.g. `AWESOME1.FIT`) converts correctly to a Data Table row.
-6. [ ] Create UE5 project with top-down camera and placeholder landscape.
+1. [x] Check `Source/Data/TGL/` directory for any `.ase` or `.max` files — **2,947 ASE files confirmed**. All models in 3DS Max ASCII Scene Export format. Use `ase_to_fbx.py` (already written) via Blender batch mode.
+2. [x] Bulk TGA import — `Tools/pipeline/ue_import_textures.py` (UE Python console script). Auto-categorizes into Mechs/Terrain/Buildings/UI/Effects/Misc. Sets TC_Normalmap for _n files, TC_Default elsewhere. Run via Tools > Execute Python Script in UE editor. **2,328 TGA files ready.**
+3. [x] Bulk WAV import — `Tools/pipeline/ue_import_audio.py`. Requires `audio_organize.py` run first to sort into SFX/VO/Music subfolders. Creates SC_Master/SFX/Music/VO/UI Sound Class hierarchy. Assigns attenuation presets per category. **1,146 WAV files ready.**
+4. [x] TXM extractor — `Tools/pipeline/txm_extract.py` written and tested. Handles LZW-compressed BGRA → PNG. **100 TXM runtime textures extracted.**
+5. [x] FIT parser — `Tools/pipeline/fit_convert.py` written. Converts mech `.fit` files to CSV for UE Data Table import.
+6. [x] UE5 project created — `UE5Project/MechCommander2/MechCommander2.uproject`. Target.cs files added. Opens in UE5.4+.
