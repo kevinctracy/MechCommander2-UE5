@@ -4,40 +4,29 @@ Complete these in order. Each stage depends on the previous one.
 
 ---
 
-## STAGE 1 — Before Opening UE (Terminal / Blender)
+## STAGE 1 — Before Opening UE (Terminal / Blender) ✅ COMPLETE
 
-Do this on any machine. Results go to a scratch folder (e.g. `/tmp/mc2_out/`).
+### ✅ 1a. Convert ASE models to FBX
+**Done.** 2,927 / 2,947 FBX files produced in `/tmp/mc2_out/fbx/`.
+(20 skipped — intentionally empty destroyed-prop files with 0 vertices.)
 
-### 1a. Convert ASE models to FBX
-Requires Blender installed.
-```
-blender --background --python Tools/pipeline/ase_to_fbx.py \
-    -- Source/Data/TGL /tmp/mc2_out/fbx
-```
-~2,947 files. Takes 10–30 min depending on machine. Makes coffee.
+### ✅ 1b. Extract mission data
+**Done.** 24 mission JSON files in `/tmp/mc2_out/missions/`.
 
-### 1b. Extract mission data
+### 1c. Extract TXM textures ← DO THIS NEXT
 ```
-python Tools/pipeline/extract_all_mission_data.py \
-    --source Source/Data \
-    --warriors Source/Data/Missions/Warriors \
-    --output /tmp/mc2_out/missions
-```
-Produces one JSON per mission (24 total) in a few seconds.
-
-### 1c. Extract TXM textures
-```
-python Tools/pipeline/txm_extract.py \
+cd /Volumes/projects/personal/MechCommander2-Source
+python3 Tools/pipeline/txm_extract.py \
     Source/Data/TXM /tmp/mc2_out/png
 ```
-100 files → PNGs. Fast.
+100 files → PNGs. Takes a few seconds.
 
 ---
 
 ## STAGE 2 — First-Time Project Setup (UE Editor, once only)
 
 ### 2a. Generate project files
-Right-click `MechCommander2.uproject` → **Generate Project Files**
+Right-click `UE5Project/MechCommander2/MechCommander2.uproject` → **Generate Project Files**
 
 ### 2b. Compile
 Open the generated solution in your IDE, build config **Development Editor**, hit Build.
@@ -55,7 +44,8 @@ Without these UE will warn on every launch:
 
 ## STAGE 3 — Import Assets (UE Editor, Tools → Execute Python Script)
 
-Run each script via **Tools → Execute Python Script** and wait for it to finish before running the next. Check the Output Log for errors after each one.
+Run each script via **Tools → Execute Python Script** and wait for it to finish
+before running the next. Check the Output Log for errors after each one.
 
 > **How to open Output Log:** Window → Output Log
 
@@ -74,7 +64,7 @@ Run: `Tools/pipeline/ue_import_txm_pngs.py`
 ### Step 2 — Import TGA textures
 Edit the path at the top:
 ```python
-SOURCE_DIR = r"/path/to/MechCommander2-Source/Source/Data/Art"
+SOURCE_DIR = r"/Volumes/projects/personal/MechCommander2-Source/Source/Data/Art"
 ```
 Run: `Tools/pipeline/ue_import_textures.py`
 
@@ -85,7 +75,7 @@ Run: `Tools/pipeline/ue_import_textures.py`
 ### Step 3 — Import audio
 Edit the path at the top:
 ```python
-WAV_SOURCE = r"/path/to/MechCommander2-Source/Source/Data/Sound"
+WAV_SOURCE = r"/Volumes/projects/personal/MechCommander2-Source/Source/Data/Sound"
 ```
 Run: `Tools/pipeline/ue_import_audio.py`
 
@@ -182,7 +172,7 @@ These can't be scripted — they require the Blueprint editor UI.
 - **Content Browser → Add → Animation → Animation Blueprint**
 - Parent class: `AnimInstance`, Skeleton: `SK_BattleMech_Skeleton`
 - Save as `/Game/Animations/ABP_BattleMech`
-- Build the state machine per `Source/MechCommander2/Public/Units/ABP_BattleMech_Reference.h`
+- Build the state machine per `UE5Project/MechCommander2/Source/MechCommander2/Public/Units/ABP_BattleMech_Reference.h`
   (that file is your full implementation guide)
 
 ### 4c. Create `BP_BattleMech`
