@@ -13,17 +13,18 @@ Complete these in order. Each stage depends on the previous one.
 ### ✅ 1b. Extract mission data
 **Done.** 24 mission JSON files in `/tmp/mc2_out/missions/`.
 
-### ⬜ 1c. Extract TXM textures ← YOU ARE HERE
+### ✅ 1c. Extract TXM textures
+**Done.** 100/100 PNGs extracted to `/tmp/mc2_out/png/`.
 ```
 cd /Volumes/projects/personal/MechCommander2-Source
 python3 Tools/pipeline/txm_extract.py \
-    Source/Data/TXM /tmp/mc2_out/png
+    Source/Data/Textures /tmp/mc2_out/png
 ```
 100 files → PNGs. Takes a few seconds.
 
 ---
 
-## STAGE 2 — First-Time Project Setup (UE Editor, once only)
+## STAGE 2 — First-Time Project Setup (UE Editor, once only) ← YOU ARE HERE
 
 ### ⬜ 2a. Generate project files
 Right-click `UE5Project/MechCommander2/MechCommander2.uproject` → **Generate Project Files**
