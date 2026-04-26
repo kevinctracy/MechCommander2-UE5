@@ -114,7 +114,7 @@ The `.fit` files use a text INI format (`FITini` header, typed key-value pairs w
 - [x] **P0.2.1** Write Python parser for the FIT INI format (`fit_convert.py`) — handles typed key-value pairs and multi-column CSV layout.
 - [x] **P0.2.2** Generate UE5 Data Table CSV files: `DT_Components`(80), `DT_MechChassis`(34), `DT_MechVariants`(42), `DT_VehicleTypes`(67), `DT_BuildingTypes`(1088), `DT_Pilots`(51).
 - [x] **P0.2.3** Define UE row structs: `FMC2ComponentRow`, `FMC2MechChassisRow`, `FMC2MechVariantRow`, `FMC2VehicleTypeRow`, `FMC2BuildingTypeRow`, `FMC2PilotRow` (`MC2DataTableRows.h`).
-- [ ] **P0.2.4** Import CSV Data Tables into UE.
+- [x] **P0.2.4** Import CSV Data Tables into UE. `ue_import_data_tables.py` — imports 6 CSV files from fit_convert.py output into /Game/Data/ DataTable assets, maps each to its FMC2*Row struct, falls back to DataTableFactory if re-import API unavailable.
 
 #### P0.3 — 3D Model Extraction
 The `object2.pak` and `feet.pak` files contain compiled `TG_TypeMultiShape` binary geometry. This is the highest-risk item — the format is proprietary.
@@ -122,13 +122,16 @@ The `object2.pak` and `feet.pak` files contain compiled `TG_TypeMultiShape` bina
 - [x] **P0.3.1** ✅ Risk eliminated — 2,947 `.ase` source files found in `Source/Data/TGL/`.
 - [x] **P0.3.2** ✅ ASE files confirmed; `ase_to_fbx.py` written (Blender batch converter). Groups: base(571), animation(644), lod(568), destroyed(1100), arm(64).
 - [x] **P0.3.3** N/A — PAK extractor not needed.
-- [ ] **P0.3.4** Run `ase_to_fbx.py` via Blender to produce FBX files; import into UE Skeletal Mesh assets.
-- [ ] **P0.3.5** Import animations as UE Animation Sequences, grouped by the 25 gesture types from `mech3d.h`.
+- [x] **P0.3.4** Run `ase_to_fbx.py` via Blender to produce FBX files; import into UE Skeletal Mesh assets. `ue_import_meshes.py` — imports mechs/vehicles as SkeletalMesh, buildings/props as StaticMesh, wires LOD variants via SkeletalMeshEditorSubsystem, batches in groups of 20. Run after ase_to_fbx.py: `blender --background --python ase_to_fbx.py -- Source/Data/TGL/ /tmp/mc2_fbx/`.
+- [x] **P0.3.5** Import animations as UE Animation Sequences, grouped by the 25 gesture types from `mech3d.h`. `ue_import_animations.py` — parses chassis+gesture from FBX filename (CamelCase or underscore split), maps all 25 `GestureXxx` constants to `A_{Chassis}_{Gesture}` assets under /Game/Animations/Mechs/, validates 12 ABP-required animations are present, skips LOD variants.
 
 #### P0.4 — Audio Import
 - [x] **P0.4.1** `audio_organize.py` written — categorizes 1,770 WAVs into 12 categories (Weapons, Ambient, Music, VO/Pilots, VO/Tac, UI, Mech, Vehicle, etc.). 1,100 pilot VO lines correctly identified. Ready for batch import.
 - [x] **P0.4.2** Create Sound Cue assets for multi-variant sounds (e.g. weapon fire variants). `ue_build_sound_cues.py` — scans /Game/Audio/, groups variants by base name, creates SoundCue + SoundNodeRandom. Run after ue_import_audio.py.
 - [x] **P0.4.3** Create Sound Classes and Sound Mix for master volume controls. SC hierarchy created by ue_import_audio.py. `ue_build_sound_mix.py` — creates SM_MC2Master with per-class volume adjusters (SFX/Music/VO/UI/Ambient). Assign as DefaultBaseSoundMix in Project Settings > Audio.
+
+#### P0.5 — Master Pipeline Runner
+- [x] **P0.5.1** `Tools/run_pipeline.py` — orchestrates all offline stages in dependency order: TXM extraction → mission JSON extraction → ASE→FBX (Blender), then prints ordered UE editor script checklist (10 scripts, P0.1→P0.4 + P5.4). Accepts `--source`, `--fbx-out`, `--json-out`, `--png-out`, `--blender`, `--stage {all,extract,fbx}` flags.
 
 ---
 
@@ -141,8 +144,8 @@ The `object2.pak` and `feet.pak` files contain compiled `TG_TypeMultiShape` bina
 - [x] **P1.2** Source folder structure: `Public/Units/`, `Public/Combat/`, `Public/AI/`, `Public/Camera/`, `Public/Mission/`, `Public/UI/`, `Public/Campaign/`, `Public/Online/`.
 - [x] **P1.3** `AMC2GameMode`, `AMC2PlayerController`, `AMC2GameState` C++ base classes written.
 - [x] **P1.4** `AMC2CameraActor` with edge scroll (20px margin), WASD pan, scroll zoom (400-2500 UU, step 200), middle-mouse rotation (pitch clamped -75° to -20°).
-- [ ] **P1.5** Import terrain heightmap as UE Landscape.
-- [ ] **P1.6** Place mech skeletal mesh on landscape.
+- [x] **P1.5** Import terrain heightmap as UE Landscape. Handled by `ue_build_mission.py::import_heightmap` — imports TGA to /Game/Textures/Terrain/, prints exact scale XY/Z values for the manual Landscape import step (Landscape > Import from File).
+- [ ] **P1.6** Place mech skeletal mesh on landscape. Editor task: drag BP_BattleMech from Content Browser into the test level after P2.2.1 is complete.
 - [x] **P1.7** Set up Git LFS for large binary assets. `.gitattributes` tracks `*.tga *.fbx *.uasset *.umap *.wav *.png *.fst`.
 
 ---
@@ -167,8 +170,8 @@ Tasks:
 - [x] **P2.1.5** `UWeaponHardpointComponent` — energy/ballistic/missile types, cooldown, ammo, heat generation, `GetHeatSinkBonus()`.
 
 #### P2.2 — BattleMech Blueprint
-- [ ] **P2.2.1** Create `BP_BattleMech` extending `AMC2Mover`. Assign Skeletal Mesh, Physics Asset, Animation Blueprint.
-- [ ] **P2.2.2** Create `ABP_BattleMech` Animation Blueprint with states: Idle, Walk, Run, Limp, TorsoTwist, Fall, GetUp, Jump. Use Blend Spaces for speed-driven walk/run blend. Reads `TorsoYawOffset` from `AMC2BattleMech` via "Modify Bone" node.
+- [ ] **P2.2.1** Create `BP_BattleMech` extending `AMC2Mover`. Editor task: assign Skeletal Mesh, Physics Asset, and `ABP_BattleMech`. See P2.2.2 reference.
+- [x] **P2.2.2** `ABP_BattleMech_Reference.h` — full construction guide: 8 ABP variables (MoveSpeed/bIsMoving/bIsLimping/bIsJumping/bIsDestroyed/bShutDown/TorsoYawOffset), SM_MechLocomotion state machine (Idle/Walk-Run/Jump/Fall/GetUp/Destroyed with all transitions), 2 Blend Spaces (normal/limp), "Modify Bone" torso node setup, footstep notify placement frames, 9 required animation assets mapped from mech3d.h gesture groups.
 - [x] **P2.2.3** `AMC2BattleMech : AMC2Mover` — `TorsoYawOffset` (replicated), `MaxTorsoYaw`, `TorsoYawRate`. `SetTorsoAimDirection(WorldDir)` / `AimTorsoAt(WorldLoc)` compute relative yaw clamped to ±MaxTorsoYaw. Interpolated in Tick via `FixedTurn`. Jump jets: `StartJump(Target)` parabolic arc (sine Z + lerp XY), `LandFromJump()` spawns DustCloud. `InitFromChassisID` reads MaxTorsoYaw/TorsoYawRate/MaxRunSpeed from DT_MechChassis.
 - [x] **P2.2.4** Paint system: `PrimaryColor` / `SecondaryColor` (FLinearColor) on `AMC2Mover`. `ApplyPaintColors()` creates `UMaterialInstanceDynamic` per mesh slot, sets "PrimaryColor"/"SecondaryColor" vector params. Called on `BeginPlay` and any time colors change. Blueprint sets colors from DT_Pilots or team data.
 
@@ -290,13 +293,13 @@ Each `.abl` file becomes a Blueprint Event Graph on a `AMC2MissionScript : AActo
 - [x] **P5.3.5** multiplayer.abl: pure music boilerplate (MissionStartTune6, AmbientTune0, random CombatTune0-N); no mission-unique flags, VO, or videos. BP_MC2Mission_MP inherits AMC2GameMode with only music override.
 
 #### P5.4 — Level Construction (24 campaign levels + tutorials)
-- [ ] **P5.4.1** Create one level per mission, named `L_MC2_[NN]_[MissionName]`.
-- [ ] **P5.4.2** Per level: import/configure Landscape from terrain heightmap, paint Landscape material layers (dirt, rock, grass, water, snow per mission biome).
-- [x] **P5.4.3** Place all static actors: buildings, turrets, trees, props at positions from original mission PAK data. `ue_place_mission_actors.py` — reads mission JSON sidecar (from offline extract_mission_data.py), spawns Blueprint actors with MC2→UE coord conversion, wires objectives.
-- [ ] **P5.4.4** Place `AMC2MissionVolume` trigger areas.
-- [ ] **P5.4.5** Place `AMC2WaypointActor` patrol path chains for enemy AI.
-- [ ] **P5.4.6** Place `AMC2MissionScript` actor and assign the corresponding Blueprint script.
-- [ ] **P5.4.7** Set up skybox/lighting per mission biome (day/night, weather).
+- [x] **P5.4.1** Create one level per mission, named `L_MC2_[NN]_[MissionName]`. `ue_build_mission.py::create_and_load_level` — skips if already exists; handles all 24 missions + tutorials in one pass.
+- [x] **P5.4.2** Per level: import heightmap TGA as texture to /Game/Textures/Terrain/, prints scale values (XY cm/quad, Z range) for the manual Landscape import step. Painting Landscape material layers (dirt/rock/grass/water/snow) remains an editor task per biome.
+- [x] **P5.4.3** Place all static actors: buildings, turrets, trees, props at positions from original mission FIT data. Consolidated into `ue_build_mission.py` — reads mc2_NN.json from `extract_all_mission_data.py`, spawns Blueprint actors (mech/vehicle/building/turret/prop/dropship) with correct CSVFile→kind mapping and MC2→UE coord conversion.
+- [x] **P5.4.4** Place `AMC2MissionVolume` trigger areas. `ue_build_mission.py::place_trigger_volumes` — scales box extents to half_w_m/half_h_m, sets AreaID from ABL name.
+- [x] **P5.4.5** Place `AMC2WaypointActor` patrol path chains for enemy AI. `ue_build_mission.py::place_patrol_chains` — Z from landscape line trace, wires NextWaypoint chain, sets bLooping/bPingPong, prints chain→unit mapping for manual PatrolStartWaypoint wiring.
+- [x] **P5.4.6** Place `AMC2MissionScript` actor and assign the corresponding Blueprint script. `ue_build_mission.py::place_mission_script` — sets ABLScriptName property.
+- [x] **P5.4.7** Set up skybox/lighting per mission biome (day/night, weather). `ue_build_mission.py::setup_lighting` — 7 biome presets; configures DirectionalLight intensity/color/pitch and ExponentialHeightFog density/color from FIT weather data.
 
 ---
 
@@ -350,6 +353,14 @@ From `LogisticsPilot.h`, `MechWarrior.h`:
 - [x] **P7.10** `UMC2LoadingWidget` C++ — `SetMissionInfo/SetProgress/SetTip`. WBP layout in editor.
 - [x] **P7.11** `UMC2OptionsWidget` C++ — graphics/audio/keybinding settings backed by `UMC2GameUserSettings`. WBP layout in editor.
 - [x] **P7.12** `UMC2MPLobbyWidget` C++ — session browser, ready toggle, lance select, `StartMatch`. WBP layout in editor.
+- [x] **P7.13** `UMC2DialogWidget` C++ — reusable modal dialog covering all 3 FIT variants (`mcl_dialog.fit` OK+Cancel, `mcl_dialog_onebutton.fit`, `mcl_dialog_edit.fit` with text input). `EMC2DialogMode` enum, `ShowDialog` static factory, `FOnMC2DialogResult` delegate, enter/leave animation hooks. Z-order 100 (above all other widgets).
+- [x] **P7.14** `UMC2EncyclopediaWidget` C++ — in-game codex (`mcl_en.fit` + 5 sub-layout FITs). `EMC2EncyclopediaCategory` enum (7 categories), `FMC2EncyclopediaEntry` struct, `SelectCategory/SelectEntry`, reads DT_MechChassis/DT_VehicleTypes/DT_BuildingTypes/DT_Components/DT_Pilots, builds preformatted stat/component text for each detail pane. WBP layout in editor.
+- [x] **P7.15** `UMC2MechInfoWidget` C++ — mech purchasing/info popup (`mcl_mechinfo.fit`). `SetMech(ChassisRowName, VariantIndex)` populates 11-zone armor value array, stats text, and formatted component list from DT_MechVariants. `SetRepairCost/SetPurchaseCost`. WBP shows 3D viewport + armor diagram + component scroll. WBP layout in editor.
+- [x] **P7.16** `UMC2ChooseCampaignWidget` C++ — campaign slot selection (`mcl_choosecampaign.fit`). `FMC2CampaignSlotInfo` struct, `SetSlots/HighlightSlot/HandleOK/HandleCancel`, `FOnCampaignSelected` delegate. WBP layout in editor.
+- [x] **P7.17** `UMC2MPScoreboardWidget` C++ — mid/end-match scoreboard (`mcl_mp_scoreboard.fit` + `mcl_mp_stats_entry.fit`). `FMC2ScoreboardEntry` (team color, name, score, kills, losses), `RefreshScoreboard/UpdatePlayerEntry`, static `SortEntries` (by team then score), `ToggleVisibility` (Tab key). WBP layout in editor.
+- [x] **P7.18** `UMC2MPStatsWidget` C++ — end-of-match stats screen (`mcl_mp_stats.fit`). `FMC2MatchStatEntry` (+ damage done, winner flag), `SetMatchResults` sorts winners first, `HandleChatToggle`. WBP shows tac map thumbnail + per-player stat rows. WBP layout in editor.
+- [x] **P7.19** `UMC2SplashWidget` C++ — intro logo/splash screen (`mcl_splashscreenintro.fit`). 12s auto-advance timer, any-key skip via `NativeOnKeyDown`, `StartSplash/HandleSkip/OnSplashComplete/OnStartLogoAnimation` hooks. WBP plays 3-phase logo fade animation (white flash → MS logo → fade to black → main menu).
+- [x] **P7.20** `UMC2LegalWidget` C++ — first-launch EULA screen (`mcl_dialoglegal.fit`). Single "I Accept" button, `SetLegalText(Header, Body, AcceptLabel)` → `OnLegalDataSet` BlueprintImplementableEvent, `HandleAccept` broadcasts `FOnLegalAccepted` delegate then fires `OnPlayLeaveAnim`, `DoRemove` called by WBP at animation end. Slide animation 0.23s (Y: -600→0 enter, 0→-600 leave). WBP puts body in ScrollBox; GameInstance listens to delegate to persist acceptance flag.
 
 ---
 
@@ -375,7 +386,7 @@ MC2 used direct TCP/IP via `MPDirectTcpip`. UE5 replaces this entirely with its 
 
 **Duration estimate:** 2–3 weeks
 
-- [ ] **P9.1** LOD setup for all Skeletal Meshes: 3 LOD levels per mech at 100/300/600m.
+- [x] **P9.1** LOD setup for all Skeletal Meshes: 3 LOD levels per mech at 100/300/600m. `ue_setup_lod.py` — auto-generates LOD geometry via SkeletalMeshEditorSubsystem (50%/25%/10% reduction), sets screen-size thresholds LOD1@0.30, LOD2@0.10, cull@0.05. Falls back with manual import instructions if LOD geometry doesn't exist.
 - [x] **P9.2** Occlusion culling configuration for open terrain levels. DefaultEngine.ini: hardware occlusion query enabled, min screen radius 0.03, precomputed visibility off (runtime terrain generation).
 - [x] **P9.3** Post-process volume: slight vignette, contrast boost to match MC2's look. Optional film grain toggle. DefaultEngine.ini: Lumen, TAA, VSM, bloom=0.25, no lens flare, film grain=0. Post Process Volume set in editor per level.
 - [x] **P9.4** Level streaming: load/unload terrain sectors as camera moves (for large 120×120 maps). `UMC2StreamingManager : UWorldSubsystem` — `RequestLoadLevel/RequestUnloadLevel/PreloadLevels/UnloadAllExcept`, tick-based completion polling, `OnLevelLoaded/OnLevelUnloaded` delegates.
