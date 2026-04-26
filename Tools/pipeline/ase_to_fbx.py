@@ -242,7 +242,7 @@ def convert_with_blender(tgl_dir: Path, out_dir: Path):
 
     for key, group in groups.items():
         display = group["display_name"]
-        all_files = group["base"] + group["animation"] + group["lod"] + group["arm"]
+        all_files = group["base"] + group["animation"] + group["lod"] + group["arm"] + group["destroyed"]
 
         if key in mech_names or any(key.startswith(mn) for mn in mech_names):
             sub = out_dir / "mechs" / display
