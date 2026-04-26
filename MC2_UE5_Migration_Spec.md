@@ -104,7 +104,7 @@ The `.txm` files in `FinalBuild/data/textures/` are raw ARGB pixel data (passed 
 
 - [x] **P0.1.1** Write Python script to read `.txm` files — 9-12 bit variable-width LZW decompressor + BGRA→RGBA PNG converter (`txm_extract.py`).
 - [x] **P0.1.2** Run extractor against all 100 `.txm` files — 100/100 extracted successfully to 64×64 PNGs.
-- [ ] **P0.1.3** Import extracted PNGs into UE5 texture assets, set compression type (BC3 for alpha, BC1 for opaque).
+- [x] **P0.1.3** Import extracted PNGs into UE5 texture assets, set compression type (BC3 for alpha, BC1 for opaque). `ue_import_txm_pngs.py` — imports into /Game/Textures/TXM/, sets TC_EditorIcon + no mipmaps (64×64 UI sprites).
 
 **Note:** The 2,315 source `.tga` files can be imported directly — do that first for quick wins.
 
@@ -128,7 +128,7 @@ The `object2.pak` and `feet.pak` files contain compiled `TG_TypeMultiShape` bina
 #### P0.4 — Audio Import
 - [x] **P0.4.1** `audio_organize.py` written — categorizes 1,770 WAVs into 12 categories (Weapons, Ambient, Music, VO/Pilots, VO/Tac, UI, Mech, Vehicle, etc.). 1,100 pilot VO lines correctly identified. Ready for batch import.
 - [x] **P0.4.2** Create Sound Cue assets for multi-variant sounds (e.g. weapon fire variants). `ue_build_sound_cues.py` — scans /Game/Audio/, groups variants by base name, creates SoundCue + SoundNodeRandom. Run after ue_import_audio.py.
-- [ ] **P0.4.3** Create Sound Classes and Sound Mix for master volume controls.
+- [x] **P0.4.3** Create Sound Classes and Sound Mix for master volume controls. SC hierarchy created by ue_import_audio.py. `ue_build_sound_mix.py` — creates SM_MC2Master with per-class volume adjusters (SFX/Music/VO/UI/Ambient). Assign as DefaultBaseSoundMix in Project Settings > Audio.
 
 ---
 
