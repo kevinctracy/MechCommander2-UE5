@@ -41,6 +41,10 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Salvage")
 	void OnConfirmed();
 
+	// Called after SetSalvagePool so Blueprint can populate ListView items
+	UFUNCTION(BlueprintImplementableEvent, Category = "Salvage")
+	void OnSalvagePoolSet(const TArray<FName>& ComponentIDs, int32 Budget);
+
 protected:
 	UPROPERTY(meta=(BindWidget)) TObjectPtr<UListView>    SalvageList;
 	UPROPERTY(meta=(BindWidget)) TObjectPtr<UTextBlock>   BudgetText;
@@ -57,4 +61,6 @@ private:
 	int32 BudgetTotal     = 0;
 	int32 BudgetRemaining = 0;
 	TArray<FName> SelectedComponents;
+
+	void RefreshBudgetDisplay();
 };

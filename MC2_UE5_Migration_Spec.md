@@ -338,18 +338,18 @@ From `LogisticsPilot.h`, `MechWarrior.h`:
 
 **Duration estimate:** 4–5 weeks (UI is always underestimated)
 
-- [ ] **P7.1** Create `WBP_MainMenu`: mission select, load game, options, quit. Use FIT layout from `mainscreen.fit` as reference for element positions.
+- [x] **P7.1** `UMC2MainMenuWidget` C++ — new/load/MP/options/quit button handlers, `HasSaveInSlot` check, `StartNewCampaign/LoadSlot`. WBP layout in editor.
 - [x] **P7.2** `AMC2HUD` + `UMC2HUDWidget` + `UMC2UnitPortraitWidget` + `UMC2MinimapWidget` — rubber-band selection box, armor/heat bars (traffic-light color), minimap blips, mission clock, C-Bills display. Remaining: UMG designer layout in Blueprint.
-- [ ] **P7.3** Create `WBP_TacMap`: full-screen tactical map overlay, shows unit positions, nav markers, fog of war.
-- [ ] **P7.4** Create `WBP_MechBay`: mech roster list, pilot assignment, repair queue, C-Bill balance.
-- [ ] **P7.5** Create `WBP_MechLab`: drag-and-drop component loadout editor, weight/slot validation display, armor allocation sliders.
-- [ ] **P7.6** Create `WBP_PilotReady`: pre-mission lance assignment, pilot/mech pairing.
-- [ ] **P7.7** Create `WBP_MissionBriefing`: mission text, objectives list, map overview.
-- [ ] **P7.8** Create `WBP_MissionResults`: success/failure, kills/losses summary, salvage selection, XP gained.
-- [ ] **P7.9** Create `WBP_Salvage`: drag salvaged components to inventory.
-- [ ] **P7.10** Create `WBP_Loading`: loading screen with mission briefing text, progress bar.
-- [ ] **P7.11** Create `WBP_Options`: graphics, audio, keybinding settings. Store in `UGameUserSettings`.
-- [ ] **P7.12** Create `WBP_MPLobby`: multiplayer session browser, host/join, lance selection (from `MCL_MP_*.fit` files).
+- [x] **P7.3** `UMC2TacMapWidget` C++ — `WorldToMapUV/UVToCanvasPosition`, `RefreshBlips()` tick, `OnBlipsRefreshed` BlueprintImplementableEvent. WBP layout in editor.
+- [x] **P7.4** `UMC2MechBayWidget` C++ — roster CRUD, repair cost display, pilot assignment drag, C-Bill display. WBP layout in editor.
+- [x] **P7.5** `UMC2MechLabWidget` C++ — drag slot API, `ValidateLoadout` binding, weight/slot feedback, `SaveLoadout/ResetLoadout`. WBP layout in editor.
+- [x] **P7.6** `UMC2PilotReadyWidget` C++ — 4-slot lance assignment, `AssignPilotToSlot/ClearSlot/IsLanceReady`, `LaunchMission()` → `OpenLevel`. WBP layout in editor.
+- [x] **P7.7** `UMC2MissionBriefingWidget` C++ — `SetMissionData`, `AddObjectiveLine`, launch/back buttons. WBP layout in editor.
+- [x] **P7.8** `UMC2MissionResultsWidget` C++ — result display, kills/losses, XP, next-screen navigation. WBP layout in editor.
+- [x] **P7.9** `UMC2SalvageWidget` C++ — `SetSalvagePool`, `ToggleSelectComponent`, budget bar, `ConfirmSalvage → LS::CommitSalvage`. WBP layout in editor.
+- [x] **P7.10** `UMC2LoadingWidget` C++ — `SetMissionInfo/SetProgress/SetTip`. WBP layout in editor.
+- [x] **P7.11** `UMC2OptionsWidget` C++ — graphics/audio/keybinding settings backed by `UMC2GameUserSettings`. WBP layout in editor.
+- [x] **P7.12** `UMC2MPLobbyWidget` C++ — session browser, ready toggle, lance select, `StartMatch`. WBP layout in editor.
 
 ---
 
