@@ -1,9 +1,11 @@
 #include "Mission/MC2GameMode.h"
 #include "MC2GameState.h"
 #include "MC2PlayerState.h"
+#include "MC2HUD.h"
 #include "Units/MC2Mover.h"
 #include "Units/MC2PilotComponent.h"
 #include "Campaign/MC2LogisticsSubsystem.h"
+#include "UI/MC2HUDWidget.h"
 #include "EngineUtils.h"
 
 AMC2GameMode::AMC2GameMode()
@@ -123,16 +125,38 @@ AMC2Mover* AMC2GameMode::ScriptSpawnUnit(TSubclassOf<AMC2Mover> UnitClass, const
 // Objective evaluation
 // ---------------------------------------------------------------------------
 
+static void NotifyHUDObjectivesUpdated(UWorld* World)
+{
+	// Notify every local player's HUD widget that objective state changed.
+	// WBP_MC2HUD implements OnObjectivesUpdated() to refresh the objective list panel.
+	for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		if (!PC || !PC->IsLocalController()) continue;
+
+		if (AMC2HUD* HUD = Cast<AMC2HUD>(PC->GetHUD()))
+		{
+			if (UMC2HUDWidget* Widget = HUD->GetHUDWidget())
+				Widget->OnObjectivesUpdated();
+		}
+	}
+}
+
 void AMC2GameMode::EvaluateObjectives()
 {
 	bool bAllPrimaryComplete = true;
 	bool bAnyPrimaryFailed   = false;
+	bool bAnyStatusChanged   = false;
 
 	for (UMC2Objective* Obj : PrimaryObjectives)
 	{
 		if (!Obj) continue;
 		if (Obj->Status == EMC2ObjectiveStatus::Incomplete)
+		{
+			const EMC2ObjectiveStatus Prev = Obj->Status;
 			Obj->Status = Obj->Evaluate(this);
+			if (Obj->Status != Prev) bAnyStatusChanged = true;
+		}
 
 		if (Obj->Status == EMC2ObjectiveStatus::Incomplete)
 			bAllPrimaryComplete = false;
@@ -144,13 +168,24 @@ void AMC2GameMode::EvaluateObjectives()
 	for (UMC2Objective* Obj : SecondaryObjectives)
 	{
 		if (Obj && Obj->Status == EMC2ObjectiveStatus::Incomplete)
+		{
+			const EMC2ObjectiveStatus Prev = Obj->Status;
 			Obj->Status = Obj->Evaluate(this);
+			if (Obj->Status != Prev) bAnyStatusChanged = true;
+		}
 	}
 	for (UMC2Objective* Obj : BonusObjectives)
 	{
 		if (Obj && Obj->Status == EMC2ObjectiveStatus::Incomplete)
+		{
+			const EMC2ObjectiveStatus Prev = Obj->Status;
 			Obj->Status = Obj->Evaluate(this);
+			if (Obj->Status != Prev) bAnyStatusChanged = true;
+		}
 	}
+
+	if (bAnyStatusChanged)
+		NotifyHUDObjectivesUpdated(GetWorld());
 
 	if (bAnyPrimaryFailed)
 	{

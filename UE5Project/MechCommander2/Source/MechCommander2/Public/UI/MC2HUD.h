@@ -31,6 +31,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "UI")
 	TObjectPtr<UMC2HUDWidget> HUDWidget;
 
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "UI")
+	UMC2HUDWidget* GetHUDWidget() const { return HUDWidget; }
+
 	// --- Selection box (drawn in raw HUD pass) ---
 
 	// Call from PlayerController when drag begins

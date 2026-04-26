@@ -168,8 +168,8 @@ Tasks:
 
 #### P2.2 — BattleMech Blueprint
 - [ ] **P2.2.1** Create `BP_BattleMech` extending `AMC2Mover`. Assign Skeletal Mesh, Physics Asset, Animation Blueprint.
-- [ ] **P2.2.2** Create `ABP_BattleMech` Animation Blueprint with states: Idle, Walk, Run, Limp, TorsoTwist, Fall, GetUp, Jump. Use Blend Spaces for speed-driven walk/run blend.
-- [ ] **P2.2.3** Wire torso yaw rotation (aim direction) independently of leg direction, matching MC2's body section twist.
+- [ ] **P2.2.2** Create `ABP_BattleMech` Animation Blueprint with states: Idle, Walk, Run, Limp, TorsoTwist, Fall, GetUp, Jump. Use Blend Spaces for speed-driven walk/run blend. Reads `TorsoYawOffset` from `AMC2BattleMech` via "Modify Bone" node.
+- [x] **P2.2.3** `AMC2BattleMech : AMC2Mover` — `TorsoYawOffset` (replicated), `MaxTorsoYaw`, `TorsoYawRate`. `SetTorsoAimDirection(WorldDir)` / `AimTorsoAt(WorldLoc)` compute relative yaw clamped to ±MaxTorsoYaw. Interpolated in Tick via `FixedTurn`. Jump jets: `StartJump(Target)` parabolic arc (sine Z + lerp XY), `LandFromJump()` spawns DustCloud. `InitFromChassisID` reads MaxTorsoYaw/TorsoYawRate/MaxRunSpeed from DT_MechChassis.
 - [x] **P2.2.4** Paint system: `PrimaryColor` / `SecondaryColor` (FLinearColor) on `AMC2Mover`. `ApplyPaintColors()` creates `UMaterialInstanceDynamic` per mesh slot, sets "PrimaryColor"/"SecondaryColor" vector params. Called on `BeginPlay` and any time colors change. Blueprint sets colors from DT_Pilots or team data.
 
 #### P2.3 — GroundVehicle Blueprint
@@ -217,7 +217,7 @@ From mech armor zone constants and vehicle armor sections:
 #### P3.4 — Buildings & Turrets
 - [x] **P3.4.1** `AMC2Building` — `UStaticMeshComponent` + `UMC2HealthComponent`, `DestroyBuilding()` swaps destroyed mesh, disables collision, spawns carnage, `ApplyRadialDamage`. `FOnBuildingDestroyed` delegate.
 - [x] **P3.4.2** `AMC2Turret : AMC2Mover` — base mesh (static) + rotating turret mesh, `AimTurretAtTarget()` via `FMath::FixedTurn`, `MaxTurretYaw` clamp, `FireIfReady()`, overrides move/guard as no-ops.
-- [ ] **P3.4.3** Implement turret auto-attack AI: simple BTTask_FindNearestEnemy → BTTask_AttackTarget Behavior Tree.
+- [x] **P3.4.3** Turret auto-attack — tick-based (no BT needed): `AimTurretAtTarget` queries `USensorComponent::GetNearestEnemy()` each frame, rotates `TurretMesh` via `FMath::FixedTurn` at `TurretYawRate` deg/s. `FireIfReady()` checks range + cooldown. `bAutoFire=true` by default.
 
 ---
 
@@ -230,7 +230,7 @@ From mech armor zone constants and vehicle armor sections:
 - [x] **P4.1.1** Configure UE `RecastNavMesh` to match MC2 terrain: set agent radius/height for mech sizes (light/medium/heavy/assault). `DefaultEngine.ini` — BattleMech agent (radius=180, height=900), TileSize=1200, WalkableSlope=45°. Weight-class radii: Light=140, Medium=180, Heavy=220, Assault=260.
 - [x] **P4.1.2** `UMC2NavQueryFilter_Light/Medium/Heavy` — 3 filter subclasses, `SetMaxSearchNodes(2048)`, per weight-class area costs so heavy mechs avoid narrow corridors.
 - [x] **P4.1.3** Implement formation pathfinding: lead unit queries NavMesh, followers offset from lead path. `AMC2AIController::SetFormationSlot(Leader, LocalOffset)` — computes world goal = leader's move destination + LocalOffset rotated by leader yaw. `ClearFormation()` / `IsInFormation()`. Goal injected into BB_MOVE_TARGET each blackboard tick.
-- [ ] **P4.1.4** Implement terrain avoidance for water/cliffs using NavModifierVolumes placed on landscape.
+- [x] **P4.1.4** `AMC2NavModifierVolume : ANavModifierVolume` + `EMC2TerrainType` enum (Water/ShallowWater/Cliff/HeavyTerrain). `PostEditChangeProperty` auto-assigns area class. Nav area classes: `UMC2NavArea_Water` (cost 4×), `UMC2NavArea_Cliff` (obstacle), `UMC2NavArea_ShallowWater` (cost 1.8×), `UMC2NavArea_HeavyTerrain` (cost 2×). Place over landscape features; rebuild nav mesh.
 
 #### P4.2 — Enemy AI Behavior Tree
 Replicates `MechWarrior` pilot logic from `warrior.h/cpp`:
@@ -270,7 +270,7 @@ Implement all 23 `condition_species_type` variants from `Objective.h`:
 - [x] **P5.2.5** GUARD group (2): `GuardUnit`, `GuardStructure` — returns Failed when guarded target destroyed.
 - [x] **P5.2.6** MOVE group (4): all 4 variants using `ATriggerVolume` → `UShapeComponent::IsOverlappingActor`.
 - [x] **P5.2.7** STATE conditions (2): `UObj_BooleanFlagIsSet`, `UObj_ElapsedMissionTime`.
-- [ ] **P5.2.8** Objective display in HUD — bind to `UMC2HUDWidget::OnObjectivesUpdated` event (Blueprint implementation).
+- [x] **P5.2.8** Objective HUD binding — `EvaluateObjectives()` tracks status changes; when any change occurs calls `NotifyHUDObjectivesUpdated()` → finds local PC's `AMC2HUD::GetHUDWidget()` → calls `OnObjectivesUpdated()` (BlueprintImplementableEvent on `UMC2HUDWidget`). WBP_MC2HUD implements the event to refresh the objective list panel.
 
 #### P5.3 — ABL Script Migration (35 missions)
 Each `.abl` file becomes a Blueprint Event Graph on a `AMC2MissionScript : AActor` placed in the level. The ABL constructs that map to Blueprint:
