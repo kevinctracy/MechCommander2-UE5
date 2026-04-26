@@ -143,7 +143,7 @@ The `object2.pak` and `feet.pak` files contain compiled `TG_TypeMultiShape` bina
 - [x] **P1.4** `AMC2CameraActor` with edge scroll (20px margin), WASD pan, scroll zoom (400-2500 UU, step 200), middle-mouse rotation (pitch clamped -75° to -20°).
 - [ ] **P1.5** Import terrain heightmap as UE Landscape.
 - [ ] **P1.6** Place mech skeletal mesh on landscape.
-- [ ] **P1.7** Set up Git LFS for large binary assets.
+- [x] **P1.7** Set up Git LFS for large binary assets. `.gitattributes` tracks `*.tga *.fbx *.uasset *.umap *.wav *.png *.fst`.
 
 ---
 
@@ -376,7 +376,7 @@ MC2 used direct TCP/IP via `MPDirectTcpip`. UE5 replaces this entirely with its 
 **Duration estimate:** 2–3 weeks
 
 - [ ] **P9.1** LOD setup for all Skeletal Meshes: 3 LOD levels per mech at 100/300/600m.
-- [ ] **P9.2** Occlusion culling configuration for open terrain levels.
+- [x] **P9.2** Occlusion culling configuration for open terrain levels. DefaultEngine.ini: hardware occlusion query enabled, min screen radius 0.03, precomputed visibility off (runtime terrain generation).
 - [x] **P9.3** Post-process volume: slight vignette, contrast boost to match MC2's look. Optional film grain toggle. DefaultEngine.ini: Lumen, TAA, VSM, bloom=0.25, no lens flare, film grain=0. Post Process Volume set in editor per level.
 - [x] **P9.4** Level streaming: load/unload terrain sectors as camera moves (for large 120×120 maps). `UMC2StreamingManager : UWorldSubsystem` — `RequestLoadLevel/RequestUnloadLevel/PreloadLevels/UnloadAllExcept`, tick-based completion polling, `OnLevelLoaded/OnLevelUnloaded` delegates.
 - [ ] **P9.5** Performance target: 60fps at 1080p with 20 units on screen. Profile and fix any bottlenecks.
