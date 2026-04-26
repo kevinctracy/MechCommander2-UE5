@@ -30,6 +30,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Campaign|Save")
 	void SaveGame(int32 SlotIndex = 0);
 
+	// Upgrade an older save to the current format.
+	// Called automatically by LoadGame after deserialization.
+	// Safe to call on current-version saves (no-op).
+	UFUNCTION(BlueprintCallable, Category = "Campaign|Save")
+	void MigrateIfNeeded();
+
 	UFUNCTION(BlueprintCallable, Category = "Campaign|Save")
 	void LoadGame(int32 SlotIndex = 0);
 

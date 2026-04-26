@@ -49,11 +49,26 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile")
 	bool bIsHoming = false;
 
+	// Optional override — if unset, uses UMC2FXLibrary::HitSpark + crater decal automatically
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile|Effects")
 	TObjectPtr<UNiagaraSystem> ImpactEffect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile|Effects")
 	TObjectPtr<UNiagaraSystem> TrailEffect;
+
+	// Decal material for bullet/impact craters on terrain and buildings.
+	// Assign M_BulletCrater (BC1 terrain) or M_MissileCrater in Blueprint subclasses.
+	// If null, no decal is spawned (energy weapons should leave no decal).
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile|Effects")
+	TObjectPtr<class UMaterialInterface> CraterDecalMaterial;
+
+	// Size of the decal projected onto terrain (uniform XYZ, cm)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile|Effects")
+	float CraterDecalSize = 80.f;
+
+	// How long the crater decal fades out (seconds; 30s default matches MC2 crater persistence)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Projectile|Effects")
+	float CraterDecalLifetime = 30.f;
 
 	// --- Runtime ---
 

@@ -42,7 +42,43 @@ void UMC2LogisticsSubsystem::LoadGame(int32 SlotIndex)
 		CurrentSave = Cast<UMC2SaveGame>(
 			UGameplayStatics::CreateSaveGameObject(UMC2SaveGame::StaticClass()));
 	}
+	MigrateIfNeeded();
 	OnSaveGameLoaded.Broadcast(CurrentSave);
+}
+
+void UMC2LogisticsSubsystem::MigrateIfNeeded()
+{
+	if (!CurrentSave) return;
+
+	const int32 Ver = CurrentSave->SaveVersion;
+	if (Ver >= UMC2SaveGame::CURRENT_SAVE_VERSION) return;
+
+	UE_LOG(LogTemp, Log, TEXT("MC2LogisticsSubsystem: migrating save v%d → v%d"), Ver, UMC2SaveGame::CURRENT_SAVE_VERSION);
+
+	// v1 → v2: Gunnery/Piloting missing from pilot records; CurrentArmor array missing.
+	if (Ver < 2)
+	{
+		for (FMC2PilotRecord& Pilot : CurrentSave->PilotRoster)
+		{
+			// Default skills already set by struct defaults (Gunnery=4, Piloting=5).
+			// If somehow zero, reset to regular pilot values.
+			if (Pilot.Gunnery  == 0) Pilot.Gunnery  = 4;
+			if (Pilot.Piloting == 0) Pilot.Piloting = 5;
+		}
+		for (FMC2MechRecord& Mech : CurrentSave->MechRoster)
+		{
+			// Old saves had no CurrentArmor array — treat as fully repaired.
+			if (Mech.CurrentArmor.IsEmpty())
+				Mech.CurrentArmor.Init(0, 11);  // 0 = unknown; repair system will handle
+		}
+	}
+
+	// v2 → v3: ComponentInventory is a new field (default empty — no action needed).
+	// ClanTechFlag index 32 defaults to false — correct for saves before operation 3.
+
+	CurrentSave->SaveVersion = UMC2SaveGame::CURRENT_SAVE_VERSION;
+	// Resave immediately so the migrated data is persisted.
+	// Caller (LoadGame) will fire OnSaveGameLoaded after this returns.
 }
 
 void UMC2LogisticsSubsystem::NewCampaign(const FString& CommanderName, int32 SlotIndex)

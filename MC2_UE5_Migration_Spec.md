@@ -170,18 +170,18 @@ Tasks:
 - [ ] **P2.2.1** Create `BP_BattleMech` extending `AMC2Mover`. Assign Skeletal Mesh, Physics Asset, Animation Blueprint.
 - [ ] **P2.2.2** Create `ABP_BattleMech` Animation Blueprint with states: Idle, Walk, Run, Limp, TorsoTwist, Fall, GetUp, Jump. Use Blend Spaces for speed-driven walk/run blend.
 - [ ] **P2.2.3** Wire torso yaw rotation (aim direction) independently of leg direction, matching MC2's body section twist.
-- [ ] **P2.2.4** Implement paint system: expose `FLinearColor PrimaryColor`, `FLinearColor SecondaryColor` parameters to a Dynamic Material Instance matching MC2's RGB replacement system.
+- [x] **P2.2.4** Paint system: `PrimaryColor` / `SecondaryColor` (FLinearColor) on `AMC2Mover`. `ApplyPaintColors()` creates `UMaterialInstanceDynamic` per mesh slot, sets "PrimaryColor"/"SecondaryColor" vector params. Called on `BeginPlay` and any time colors change. Blueprint sets colors from DT_Pilots or team data.
 
 #### P2.3 — GroundVehicle Blueprint
-- [ ] **P2.3.1** Create `BP_GroundVehicle` extending `AMC2Mover`. Simpler animation than mechs: only turret yaw rotation.
-- [ ] **P2.3.2** Implement `NUM_GROUNDVEHICLE_HIT_ARCS` (4) armor zones: Front, Rear, Left, Right, Turret from `gvehicl.h`.
+- [x] **P2.3.1** `AMC2GroundVehicle : AMC2Mover` — turret yaw rotation via `SetBoneRotationByName("turret")` each tick. `AimTurretAt(WorldTarget)` clamps to `MaxTurretYaw` ±half. `TurretYawRate` interpolation. BP_GroundVehicle extends this.
+- [x] **P2.3.2** 5-arc vehicle armor: `FMC2VehicleArmor` (Arc enum + armor + IS per arc). `ApplyVehicleDamage(Damage, Arc)` — armor absorbs first, IS remainder. Any arc IS=0 → `OnDestroyed_MC2()`. `GetHitArcFromDirection(origin)` derives Front/Rear/Left/Right from dot products.
 
 #### P2.4 — Selection & Orders
 - [x] **P2.4.1** Box-select in `AMC2PlayerController`: drag < 5px = single click, else rectangle select via screen projection.
 - [x] **P2.4.2** Right-click move order via `GetHitResultUnderCursorByChannel` → `ReceiveMoveOrder`.
 - [x] **P2.4.3** Formation movement: rows of 4, 350 UU spacing, Right vector perpendicular to move direction.
-- [ ] **P2.4.4** Attack-move order — BT-driven (P4.2 work).
-- [ ] **P2.4.5** Guard order — BT-driven (P4.2 work).
+- [x] **P2.4.4** Attack-move order: `ReceiveAttackMoveOrder(Destination)` sets `OrderType=AttackMove`, moves to location; BT's `BTTask_FindNearestEnemy` interrupts movement when sensor contact found mid-route.
+- [x] **P2.4.5** Guard order: `ReceiveGuardOrder(Position)` — moves to position, AI returns to `BB_HOME_POSITION` if enemy retreats out of range (handled in BT guard branch).
 
 ---
 
@@ -209,10 +209,10 @@ From mech armor zone constants and vehicle armor sections:
 - [x] **P3.2.5** `OnDestroyed_MC2`: spawns `ExplosionEffect` Niagara via `SpawnSystemAtLocation`, hides SkeletalMesh, attaches `DestroyedMesh` static component. `ExplosionScale` matches small/medium/large carnage sizes. `BP_OnDestroyed` available for per-chassis Blueprint override.
 
 #### P3.3 — Effects
-- [ ] **P3.3.1** Create Niagara systems from GosFX definitions in `mc2.fx`: explosions (small/medium/large), muzzle flash (energy/ballistic/missile), smoke trails, fire, dust.
+- [x] **P3.3.1** `UMC2FXLibrary` + `EMC2FXType` enum — 12 FX types (Explosion S/M/L, Muzzle Energy/Ballistic/Missile, SmokeTrail, Fire, DustCloud, HitSpark, WaterSplash, JumpJet). `SpawnFX` / `SpawnFXAttached` load NS_MC2_* assets by name convention from /Game/FX/. `GetExplosionScaleForBR` maps BR 1-20 → scale 0.5-2.0. Niagara assets themselves created in editor.
 - [x] **P3.3.2** `AMC2Carnage` — 7 carnage types, `OnNiagaraFinished` auto-destroy, `SpawnCarnage()` static factory.
-- [ ] **P3.3.3** Implement hit sparks/impact decals on terrain (bullet craters as decals rather than geometry deformation).
-- [ ] **P3.3.4** Implement footstep dust Niagara spawned from AnimNotify on mech walk/run animations.
+- [x] **P3.3.3** Hit sparks/impact decals: `AMC2Projectile::OnHit` uses `UMC2FXLibrary::HitSpark` always; non-mover hits also spawn `CraterDecalMaterial` via `SpawnDecalAtLocation` (30s lifetime, 80cm default size). `CraterDecalMaterial/Size/Lifetime` properties on projectile; assign M_BulletCrater in BP subclasses.
+- [x] **P3.3.4** `UMC2AnimNotify_FootstepDust` — placed at foot-plant frame on walk/run anim sequences. `FootSocket` (foot_l/foot_r) + `DustScale`. Spawns `NS_MC2_Dust_Cloud` 20cm below socket world position.
 
 #### P3.4 — Buildings & Turrets
 - [x] **P3.4.1** `AMC2Building` — `UStaticMeshComponent` + `UMC2HealthComponent`, `DestroyBuilding()` swaps destroyed mesh, disables collision, spawns carnage, `ApplyRadialDamage`. `FOnBuildingDestroyed` delegate.
@@ -227,9 +227,9 @@ From mech armor zone constants and vehicle armor sections:
 **Duration estimate:** 3–4 weeks
 
 #### P4.1 — Navigation
-- [ ] **P4.1.1** Configure UE `RecastNavMesh` to match MC2 terrain: set agent radius/height for mech sizes (light/medium/heavy/assault).
+- [x] **P4.1.1** Configure UE `RecastNavMesh` to match MC2 terrain: set agent radius/height for mech sizes (light/medium/heavy/assault). `DefaultEngine.ini` — BattleMech agent (radius=180, height=900), TileSize=1200, WalkableSlope=45°. Weight-class radii: Light=140, Medium=180, Heavy=220, Assault=260.
 - [x] **P4.1.2** `UMC2NavQueryFilter_Light/Medium/Heavy` — 3 filter subclasses, `SetMaxSearchNodes(2048)`, per weight-class area costs so heavy mechs avoid narrow corridors.
-- [ ] **P4.1.3** Implement formation pathfinding: lead unit queries NavMesh, followers offset from lead path.
+- [x] **P4.1.3** Implement formation pathfinding: lead unit queries NavMesh, followers offset from lead path. `AMC2AIController::SetFormationSlot(Leader, LocalOffset)` — computes world goal = leader's move destination + LocalOffset rotated by leader yaw. `ClearFormation()` / `IsInFormation()`. Goal injected into BB_MOVE_TARGET each blackboard tick.
 - [ ] **P4.1.4** Implement terrain avoidance for water/cliffs using NavModifierVolumes placed on landscape.
 
 #### P4.2 — Enemy AI Behavior Tree
@@ -239,7 +239,7 @@ Replicates `MechWarrior` pilot logic from `warrior.h/cpp`:
 - [x] **P4.2.3** `BTTask_MoveToAttackRange` — reads `WeaponHardpoints[i]->WeaponRange`, `StopDistance = MaxRange - RangeBuffer`, latent move via `FAIMoveRequest`, ticks until in range.
 - [x] **P4.2.4** `BTTask_FireAtTarget` — suppresses at `HeatPct >= 0.85`, iterates hardpoints (bDestroyed/cooldown/ammo/dist checks), calls `WC->FireAt(Target)`.
 - [x] **P4.2.5** `BTTask_Patrol` + `AMC2WaypointActor` — nearest waypoint selection, `NextWaypoint` chain, `WaitDuration`, `GetChainStart()` loop, editor billboard component.
-- [ ] **P4.2.6** Implement GUID-based pilot skill modifiers: Veteran pilots get accuracy bonuses, Green pilots get penalties (from `LogisticsPilot.h` skill data).
+- [x] **P4.2.6** Implement pilot skill modifiers: `BTTask_FireAtTarget` reads `UMC2PilotComponent::GetBaseHitChance()` (Gunnery 4 = 58%). Range band penalty: -8% per half-range band past optimal. Per-weapon FRand roll — miss skips `FireAt` but cooldown still consumed (visual fire plays).
 
 #### P4.3 — Sensor & Contact System
 From `contact.h` and sensor system in MC2:
@@ -259,7 +259,7 @@ From `mission.h` and `Objective.h`:
 - [x] **P5.1.1** `AMC2GameMode` — `Parts[]`, `PrimaryObjectives[]`, `SecondaryObjectives[]`, `BonusObjectives[]` (Instanced), ABL script API (ScriptSetMissionFlag, ScriptGetTimer, ScriptSpawnUnit, ScriptSetMissionResult).
 - [x] **P5.1.2** `SpawnAllParts()` — iterates Parts, spawns AMC2Mover subclasses, updates `AMC2GameState` team tallies.
 - [x] **P5.1.3** 6 result states in `EMC2MissionResult` enum; `ApplyMissionResult()` sets GameState and fires `OnMissionResult` event.
-- [ ] **P5.1.4** Create `AMC2MissionVolume : ATriggerVolume` for area-based objectives (MoveUnitToArea conditions). (Objectives reference ATriggerVolume directly; subclass optional.)
+- [x] **P5.1.4** `AMC2MissionVolume : ATriggerVolume` — `AreaID` (FName), `FilterTeamIndex`, `RequiredUnitCount`. `OnMoverEntered/Exited/OnTeamFullyInside` delegates. `GetUnitCountInside(TeamIndex)` / `IsUnitInside()`. `CheckTeamThreshold` fires team delegate when count ≥ required. Replaces ABL `isTriggerAreaHit(N)`.
 
 #### P5.2 — Objective Conditions
 Implement all 23 `condition_species_type` variants from `Objective.h`:
@@ -308,7 +308,7 @@ Each `.abl` file becomes a Blueprint Event Graph on a `AMC2MissionScript : AActo
 #### P6.1 — Save/Load System
 - [x] **P6.1.1** `UMC2SaveGame` — `MechRoster[]`, `PilotRoster[]`, `CompletedMissions[]`, `CBills`, `CampaignFlags[64]`, `TotalPlaytimeSeconds`, slot-based (MC2_Save_N).
 - [x] **P6.1.2** Autosave: `CommitMissionToSave()` called from `ApplyMissionResult()` — commits pilot XP, calculates C-Bill rewards, calls `LS->RecordMissionResult / AdvanceToNextMission / SaveGame(0)`.
-- [ ] **P6.1.3** Save migration — defer until data structures stabilize.
+- [x] **P6.1.3** Save migration — `SaveVersion` int on `UMC2SaveGame` (current=3). `MigrateIfNeeded()` called on every `LoadGame`: v1→v2 fixes zero Gunnery/Piloting, seeds empty `CurrentArmor`; v2→v3 no-op (ComponentInventory defaults empty). Bumps version and resaves after migration.
 
 #### P6.2 — Logistics Subsystem
 From `logistics.h`, `LogisticsData.h`:
@@ -366,7 +366,7 @@ MC2 used direct TCP/IP via `MPDirectTcpip`. UE5 replaces this entirely with its 
 - [x] **P8.4** `UMC2SessionSubsystem` — `HostSession`, `FindSessions`, `JoinFoundSession`, `DestroySession` with OSS delegate binding. Supports NULL (LAN) and Steam OSS. `OnSessionCreated/Joined/Found/Destroyed` Blueprint delegates.
 - [x] **P8.5** `AMC2GameState` fully replicated: `MissionResult` (OnRep), `ScenarioTimers[8]`, `MissionFlags[64]`, `Teams[]` (FMC2TeamState).
 - [x] **P8.6** Mission sync: `Multicast_OnMissionReady(TotalUnits)` on `AMC2GameState` fired from `AMC2GameMode::StartPlay()` after `SpawnAllParts()`; late-join handled by `Server_RequestMissionSync` RPC on PlayerController.
-- [ ] **P8.7** Lobby: host configures map/teams, clients join with lance. Match original `MCL_MP_*.fit` lobby screens in `WBP_MPLobby`.
+- [x] **P8.7** `UMC2LobbySubsystem` — `FMC2LobbyPlayer` (ID, name, team, bReady, LanceMechs[4]). `SetSelectedMap/SetTeamSize` (host), `SetLocalPlayerReady/Lance/Team`, `RegisterPlayer/UnregisterPlayer/UpdatePlayerState`. `AreAllPlayersReady()` + `StartMatch()` → `ServerTravel(MissionID?listen)`. `OnLobbyStateChanged/OnMatchStarting` delegates drive `WBP_MPLobby`.
 
 ---
 

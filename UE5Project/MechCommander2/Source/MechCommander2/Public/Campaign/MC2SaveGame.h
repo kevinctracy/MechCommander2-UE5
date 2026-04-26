@@ -147,6 +147,19 @@ public:
 	UPROPERTY(BlueprintReadWrite)
 	float TotalPlaytimeSeconds = 0.f;
 
+	// --- Version stamp ---
+	// Incremented whenever the save format changes.
+	// UMC2LogisticsSubsystem::MigrateIfNeeded() upgrades old saves on load.
+	//
+	// Version history:
+	//   1 — initial format (launch)
+	//   2 — added Gunnery/Piloting to FMC2PilotRecord; TArray<int32> CurrentArmor (11 zones)
+	//   3 — added ComponentInventory to UMC2SaveGame; EMC2TechBase unlock flag (CampaignFlag[32])
+	UPROPERTY(BlueprintReadWrite)
+	int32 SaveVersion = CURRENT_SAVE_VERSION;
+
+	static constexpr int32 CURRENT_SAVE_VERSION = 3;
+
 	UMC2SaveGame()
 	{
 		CampaignFlags.Init(false, 64);

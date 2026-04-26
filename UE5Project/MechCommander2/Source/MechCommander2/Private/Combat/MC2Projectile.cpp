@@ -1,8 +1,10 @@
 #include "Combat/MC2Projectile.h"
+#include "FX/MC2FXLibrary.h"
 #include "Units/MC2Mover.h"
 #include "Units/MC2HealthComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/DecalComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -53,8 +55,31 @@ void AMC2Projectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor,
 	if (SplashRadius > 0.f)
 		ApplySplashDamage(GetActorLocation());
 
+	// FX selection: spark on unit hits, crater decal + spark on terrain/building hits
+	const bool bHitMover = Cast<AMC2Mover>(OtherActor) != nullptr;
+	const FVector ImpactLoc = Hit.ImpactPoint;
+	const FRotator ImpactRot = Hit.ImpactNormal.Rotation();
+
 	if (ImpactEffect)
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactEffect, GetActorLocation(), Hit.ImpactNormal.Rotation());
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactEffect, ImpactLoc, ImpactRot);
+	}
+	else
+	{
+		// Default FX: hit spark always; decal only for non-mover surfaces
+		UMC2FXLibrary::SpawnFX(this, EMC2FXType::HitSpark, ImpactLoc, ImpactRot);
+
+		if (!bHitMover && CraterDecalMaterial)
+		{
+			// Spawn a bullet crater decal on terrain/buildings (no geometry deformation)
+			UDecalComponent* Decal = UGameplayStatics::SpawnDecalAtLocation(
+				GetWorld(), CraterDecalMaterial, FVector(CraterDecalSize),
+				ImpactLoc, ImpactRot, CraterDecalLifetime
+			);
+			if (Decal)
+				Decal->SetFadeScreenSize(0.001f);
+		}
+	}
 
 	BP_OnImpact(Hit);
 	Destroy();

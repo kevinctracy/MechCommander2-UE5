@@ -76,11 +76,49 @@ void AMC2AIController::UpdateBlackboard()
 		}
 	}
 
-	// Current order target from mover
+	// Current order target from mover — formation followers use offset goal
 	const FMC2MoverOrder& Order = Mover->GetCurrentOrder();
 	if (Order.OrderType != EMC2OrderType::None)
 	{
-		Blackboard->SetValueAsVector(BB_MOVE_TARGET, Order.TargetLocation);
+		FVector MoveGoal = FormationLeader.IsValid()
+			? ComputeFormationTarget()
+			: Order.TargetLocation;
+
+		Blackboard->SetValueAsVector(BB_MOVE_TARGET, MoveGoal);
 		Blackboard->SetValueAsEnum  (BB_ORDER_TYPE,  (uint8)Order.OrderType);
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Formation
+// ---------------------------------------------------------------------------
+
+void AMC2AIController::SetFormationSlot(AMC2Mover* Leader, FVector LocalOffset)
+{
+	FormationLeader      = Leader;
+	FormationLocalOffset = LocalOffset;
+}
+
+void AMC2AIController::ClearFormation()
+{
+	FormationLeader      = nullptr;
+	FormationLocalOffset = FVector::ZeroVector;
+}
+
+FVector AMC2AIController::ComputeFormationTarget() const
+{
+	if (!FormationLeader.IsValid())
+		return FVector::ZeroVector;
+
+	const AMC2Mover* Leader = FormationLeader.Get();
+
+	// Use the leader's current move order destination as the formation anchor.
+	// Rotate the slot offset by the leader's yaw so the formation faces the same direction.
+	const FMC2MoverOrder& LeaderOrder = Leader->GetCurrentOrder();
+	const FVector Anchor = (LeaderOrder.OrderType != EMC2OrderType::None)
+		? LeaderOrder.TargetLocation
+		: Leader->GetActorLocation();
+
+	const FRotator LeaderYaw(0.f, Leader->GetActorRotation().Yaw, 0.f);
+	return Anchor + LeaderYaw.RotateVector(FormationLocalOffset);
 }

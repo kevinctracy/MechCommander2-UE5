@@ -8,6 +8,8 @@
 #include "AIController.h"
 #include "MC2GameState.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "NiagaraFunctionLibrary.h"
 
 AMC2Mover::AMC2Mover()
@@ -48,6 +50,9 @@ void AMC2Mover::BeginPlay()
 	// Register with game state
 	if (AMC2GameState* GS = GetWorld()->GetGameState<AMC2GameState>())
 		GS->RegisterTeam(TeamIndex, FString::Printf(TEXT("Team_%d"), TeamIndex));
+
+	// Apply initial paint colors to all material slots on the skeletal mesh
+	ApplyPaintColors();
 }
 
 void AMC2Mover::Tick(float DeltaSeconds)
@@ -121,6 +126,18 @@ void AMC2Mover::ReceiveAttackOrder(AActor* Target)
 		AIC->MoveToActor(Target, 100.f);
 }
 
+void AMC2Mover::ReceiveAttackMoveOrder(const FVector& Destination)
+{
+	CurrentOrder.OrderType      = EMC2OrderType::AttackMove;
+	CurrentOrder.TargetLocation = Destination;
+	CurrentOrder.TargetActor    = nullptr;
+
+	// AI controller's BTTask_MoveToAttackRange handles the move;
+	// BTTask_FindNearestEnemy will interrupt and engage any enemy found mid-route.
+	if (AAIController* AIC = Cast<AAIController>(GetController()))
+		AIC->MoveToLocation(Destination, 50.f);
+}
+
 void AMC2Mover::ReceiveGuardOrder(const FVector& Position)
 {
 	CurrentOrder.OrderType      = EMC2OrderType::Guard;
@@ -182,4 +199,23 @@ void AMC2Mover::OnDestroyed_MC2()
 void AMC2Mover::OnRep_ArmorZones()
 {
 	// HUD can bind to this to refresh the armor display
+}
+
+void AMC2Mover::ApplyPaintColors()
+{
+	USkeletalMeshComponent* SMC = FindComponentByClass<USkeletalMeshComponent>();
+	if (!SMC) return;
+
+	// Create a Dynamic Material Instance for each material slot and push color params.
+	// Material must expose "PrimaryColor" (Vector) and "SecondaryColor" (Vector) parameters.
+	for (int32 i = 0; i < SMC->GetNumMaterials(); ++i)
+	{
+		UMaterialInterface* BaseMat = SMC->GetMaterial(i);
+		if (!BaseMat) continue;
+
+		UMaterialInstanceDynamic* DMI = UMaterialInstanceDynamic::Create(BaseMat, this);
+		DMI->SetVectorParameterValue(TEXT("PrimaryColor"),   PrimaryColor);
+		DMI->SetVectorParameterValue(TEXT("SecondaryColor"), SecondaryColor);
+		SMC->SetMaterial(i, DMI);
+	}
 }

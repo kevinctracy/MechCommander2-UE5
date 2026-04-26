@@ -63,7 +63,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AI")
 	void UpdateBlackboard();
 
+	// --- Formation pathfinding (P4.1.3) ---
+	// Assign this unit a slot in a formation relative to a leader mech.
+	// The AI will target (LeaderDestination + Offset) instead of the raw move order location.
+	// Offset is in the leader's local space at the time of the order — rotated each tick.
+	UFUNCTION(BlueprintCallable, Category = "AI|Formation")
+	void SetFormationSlot(AMC2Mover* Leader, FVector LocalOffset);
+
+	UFUNCTION(BlueprintCallable, Category = "AI|Formation")
+	void ClearFormation();
+
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "AI|Formation")
+	bool IsInFormation() const { return FormationLeader.IsValid(); }
+
 private:
 	TWeakObjectPtr<AMC2Mover> ControlledMover;
 	FTimerHandle BlackboardUpdateTimer;
+
+	// Formation state — set by player controller when issuing a group move order
+	TWeakObjectPtr<AMC2Mover> FormationLeader;
+	FVector FormationLocalOffset = FVector::ZeroVector;
+
+	// Compute world-space formation goal from leader's current move destination
+	FVector ComputeFormationTarget() const;
 };

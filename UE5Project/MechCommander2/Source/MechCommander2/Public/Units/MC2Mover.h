@@ -171,6 +171,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Orders")
 	void ReceiveAttackOrder(AActor* Target);
 
+	// Attack-move: move to location, auto-attack any enemy in sensor range along the way.
+	// AI reads OrderType == AttackMove to keep scanning for contacts mid-move.
+	UFUNCTION(BlueprintCallable, Category = "Orders")
+	void ReceiveAttackMoveOrder(const FVector& Destination);
+
 	UFUNCTION(BlueprintCallable, Category = "Orders")
 	void ReceiveGuardOrder(const FVector& Position);
 
@@ -217,6 +222,21 @@ public:
 	// Explosion scale: small=0.5, medium=1.0, large=2.0 (matches MC2 carnage sizes)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "State|Destruction")
 	float ExplosionScale = 1.0f;
+
+	// --- Paint system (P2.2.4) ---
+	// Matches MC2's RGB color replacement system applied to the mech's material.
+	// Material must expose "PrimaryColor" and "SecondaryColor" vector parameters.
+	// Dynamic Material Instances are created on BeginPlay and updated by SetPaintColors.
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Appearance")
+	FLinearColor PrimaryColor   = FLinearColor(0.1f, 0.35f, 0.1f, 1.f);   // default: olive green
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Appearance")
+	FLinearColor SecondaryColor = FLinearColor(0.2f, 0.2f, 0.2f, 1.f);   // default: dark grey
+
+	// Call this after changing PrimaryColor / SecondaryColor to push them to the DMI.
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void ApplyPaintColors();
 
 	// --- Delegates ---
 

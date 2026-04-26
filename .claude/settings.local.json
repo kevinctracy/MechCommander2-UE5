@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(xxd /Volumes/projects/personal/MechCommander2-Source/.claude/worktrees/strange-kowalevski-7ac6e4/FinalBuild/data/textures/218235394.00065535.txm)",
+      "Bash(python3 Tools/pipeline/txm_extract.py FinalBuild/data/textures/ /tmp/txm_all/)",
+      "Bash(python3 Tools/pipeline/fit_convert.py Source/Data/Objects/ /tmp/ue_datatables/)",
+      "Read(//tmp/**)",
+      "Read(//tmp/ue_datatables/**)"
+    ]
+  }
+}
