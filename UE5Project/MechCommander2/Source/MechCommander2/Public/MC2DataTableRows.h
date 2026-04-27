@@ -23,12 +23,18 @@ enum class EMC2TechBase : uint8
  * Import each CSV in UE5 via: Content Browser → Import → pick CSV → select row struct.
  *
  * Data Tables:
- *   DT_Components    — FMC2ComponentRow     (from compbas.csv)
- *   DT_MechChassis   — FMC2MechChassisRow   (from atlas.csv, madcat.csv, ...)
- *   DT_MechVariants  — FMC2MechVariantRow   (variant loadouts per chassis)
- *   DT_VehicleTypes  — FMC2VehicleTypeRow   (from *.fit vehicle files)
- *   DT_BuildingTypes — FMC2BuildingTypeRow  (from *.fit building/prop files)
- *   DT_Pilots        — FMC2PilotRow         (from Pilots.csv)
+ *   DT_Components       — FMC2ComponentRow        (from compbas.csv)
+ *   DT_MechChassis      — FMC2MechChassisRow      (from atlas.csv, madcat.csv, ...)
+ *   DT_MechVariants     — FMC2MechVariantRow      (variant loadouts per chassis)
+ *   DT_VehicleTypes     — FMC2VehicleTypeRow      (from *.fit vehicle files)
+ *   DT_BuildingTypes    — FMC2BuildingTypeRow     (from *.fit building/prop files)
+ *   DT_Pilots           — FMC2PilotRow            (from Pilots.csv)
+ *   DT_CampaignGroups   — FMC2CampaignGroupRow    (from campaign.fit — group metadata)
+ *   DT_CampaignMissions — FMC2CampaignMissionRow  (from campaign.fit — per-mission rows)
+ *   DT_TutorialGroups   — FMC2CampaignGroupRow    (from tutorial.fit)
+ *   DT_TutorialMissions — FMC2CampaignMissionRow  (from tutorial.fit)
+ *   DT_CameraSettings   — FMC2CameraSettingsRow   (from Cameras/Cameras.fit)
+ *   DT_TeamColors       — FMC2TeamColorRow        (from Cameras/Colors.fit)
  */
 
 // ---------------------------------------------------------------------------
@@ -241,4 +247,135 @@ struct FMC2PilotRow : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   InitiativePips  = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   HouseID         = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString PortraitFile    = {};
+};
+
+// ---------------------------------------------------------------------------
+// DT_CampaignGroups / DT_TutorialGroups
+// ---------------------------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct FMC2CampaignGroupRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	// "Campaign" or "Tutorial"
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString CampaignID        = {};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   GroupIndex         = 0;
+	// How many missions the player must complete before this group is done.
+	// If NumberToComplete < MissionCount the player chooses which to run.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   NumberToComplete   = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   MissionCount       = 1;
+	// Localisation key for the operation briefing widget
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString OperationFile      = {};
+	// Node video identifier played when this group is unlocked on the galaxy map
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString Video              = {};
+	// Optional cinema cutscene shown before the group's briefing
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString PreVideo           = {};
+	// Music track index (matches MC2 music table)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   Tune               = 0;
+	// ABL script run at logistics screen entry for this group
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString ABLScript          = {};
+};
+
+// ---------------------------------------------------------------------------
+// DT_CampaignMissions / DT_TutorialMissions
+// ---------------------------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct FMC2CampaignMissionRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString CampaignID          = {};
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   GroupIndex           = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   MissionIndex         = 0;
+	// Level filename without extension (e.g. "mc2_01", "tut_01")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString FileName             = {};
+	// If true this mission must be completed; false means it's one of N choices
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool    Mandatory            = true;
+	// Logistics purchase file loaded before this mission
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString PurchaseFile         = {};
+	// Which post-mission screens to show
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool    PlayLogistics        = true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool    PlaySalvage          = true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool    PlayPilotPromotion   = true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool    PlayPurchasing       = true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool    PlaySelection        = false;
+	// Hidden missions are not shown on the galaxy map until triggered
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool    Hidden               = false;
+	// If set, overrides the parent group's Video with this specific node video
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString VideoOverride        = {};
+};
+
+// ---------------------------------------------------------------------------
+// DT_CameraSettings  (single-row table — row name "Default")
+// ---------------------------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct FMC2CameraSettingsRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   ProjectionAngle        = 35.f;   // degrees
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   PositionX              = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   PositionY              = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   PositionZ              = 0.f;
+	// Directional light colour (0-255 per channel)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   LightRed               = 255;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   LightGreen             = 255;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   LightBlue              = 255;
+	// Ambient light colour
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   AmbientRed             = 31;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   AmbientGreen           = 31;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   AmbientBlue            = 31;
+	// "Seen" fog-of-war tile tint
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   SeenRed                = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   SeenGreen              = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   SeenBlue               = 255;
+	// Base terrain colour modifier
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   BaseRed                = 47;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   BaseGreen              = 47;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   BaseBlue               = 47;
+	// Light direction
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   LightDirPitch          = 22.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   LightDirYaw            = -61.25f;
+	// Default camera zoom and scale
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   NewScale               = 0.8f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   StartRotation          = 180.f;
+	// LOD distance scale factors for three LOD levels
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   LODScale0              = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   LODScale1              = 0.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   LODScale2              = 0.3f;
+	// Terrain elevation adjustment
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   ElevationAdjustFactor  = 150.f;
+	// Zoom limits
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   ZoomMax                = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   ZoomMin                = 0.1f;
+	// Fog
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   FogStart               = 800.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) float   FogFull                = 250.f;
+	// ARGB hex string e.g. "#FFA0A0A5"
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString FogColor               = TEXT("#FFA0A0A5");
+};
+
+// ---------------------------------------------------------------------------
+// DT_TeamColors
+// ---------------------------------------------------------------------------
+
+USTRUCT(BlueprintType)
+struct FMC2TeamColorRow : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	// Which palette (0 = primary team colors, 1 = neutral/grey tones)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   TableIndex  = 0;
+	// Index within the table (0-55)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   ColorIndex  = 0;
+	// ARGB hex string e.g. "#FF001000"
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) FString ARGB        = {};
+	// Individual channels (0-255)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   A           = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   R           = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   G           = 0;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly) int32   B           = 0;
 };

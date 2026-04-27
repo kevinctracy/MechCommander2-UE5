@@ -2,20 +2,26 @@
 """
 MC2 Data Converter: FIT + CSV -> UE5 Data Table CSVs
 Generates:
-  DT_Components.csv     from compbas.csv
-  DT_MechChassis.csv    from atlas.csv, madcat.csv, ... (per-mech CSV files)
-  DT_MechVariants.csv   from the VariantInfo blocks inside each mech CSV
-  DT_VehicleTypes.csv   from APC1.fit, ArmoredCar.fit, ... vehicle FIT files
-  DT_BuildingTypes.csv  from building FIT files
-  DT_WeaponItems.csv    subset of DT_Components (weapons only)
-  DT_Pilots.csv         from Pilots.csv
+  DT_Components.csv        from compbas.csv
+  DT_MechChassis.csv       from atlas.csv, madcat.csv, ... (per-mech CSV files)
+  DT_MechVariants.csv      from the VariantInfo blocks inside each mech CSV
+  DT_VehicleTypes.csv      from APC1.fit, ArmoredCar.fit, ... vehicle FIT files
+  DT_BuildingTypes.csv     from building FIT files
+  DT_Pilots.csv            from Pilots.csv
+  DT_CampaignGroups.csv    from Campaign/campaign.fit  (group-level metadata)
+  DT_CampaignMissions.csv  from Campaign/campaign.fit  (per-mission rows)
+  DT_TutorialGroups.csv    from Campaign/tutorial.fit
+  DT_TutorialMissions.csv  from Campaign/tutorial.fit
+  DT_CameraSettings.csv    from Cameras/Cameras.fit    (single-row defaults)
+  DT_TeamColors.csv        from Cameras/Colors.fit      (two palette tables)
 
 UE5 Data Table CSV format: first column is "---" (row name) or a key.
 All floats use dot notation, all ints are plain, booleans are True/False.
 
 Usage:
-    python fit_convert.py <source_objects_dir> <output_dir>
-    python fit_convert.py Source/Data/Objects/ ue5_datatables/
+    python fit_convert.py <source_objects_dir> <output_dir> [<source_data_dir>]
+    python fit_convert.py Source/Data/Objects/ ue5_datatables/ Source/Data/
+    (source_data_dir defaults to objects_dir/../)
 """
 
 import csv
@@ -56,7 +62,9 @@ def parse_fit(text: str) -> dict:
             continue
 
         # key = value, optional type prefix
-        m = re.match(r"^([lfstucb]c?)\s+(\w+)\s*=\s*(.+)$", line)
+        # Prefix set: l (long), f (float), st (string), uc (uchar), b (bool),
+        # c (char), ul (ulong), u (uint) — match one or two letter prefixes
+        m = re.match(r"^(ul|uc|st|[lfbc])\s+(\w+)\s*=\s*(.+)$", line)
         if not m:
             m = re.match(r"^(\w+)\s*=\s*(.+)$", line)
             if m:
@@ -94,11 +102,11 @@ def _coerce_typed(prefix: str, v: str) -> Any:
     if prefix == "st":
         return v.strip('"')
     if prefix == "b":
-        return v.upper() == "TRUE"
-    if prefix in ("l", "uc", "c"):
+        return v.upper() in ("TRUE", "1")
+    if prefix in ("l", "uc", "c", "ul"):
         try:
-            return int(v)
-        except ValueError:
+            return int(v, 0)  # int(v, 0) handles 0xff hex literals
+        except (ValueError, TypeError):
             return v
     if prefix == "f":
         try:
@@ -447,6 +455,217 @@ def convert_pilots(objects_dir: Path, out_dir: Path):
 
 
 # ---------------------------------------------------------------------------
+# campaign.fit / tutorial.fit -> DT_CampaignGroups.csv + DT_CampaignMissions.csv
+# ---------------------------------------------------------------------------
+
+CAMPAIGN_GROUP_FIELDS = [
+    "---", "CampaignID", "GroupIndex", "NumberToComplete", "MissionCount",
+    "OperationFile", "Video", "PreVideo", "Tune", "ABLScript",
+]
+
+CAMPAIGN_MISSION_FIELDS = [
+    "---", "CampaignID", "GroupIndex", "MissionIndex", "FileName",
+    "Mandatory", "PurchaseFile",
+    "PlayLogistics", "PlaySalvage", "PlayPilotPromotion",
+    "PlayPurchasing", "PlaySelection",
+    "Hidden", "VideoOverride",
+]
+
+
+def convert_campaign(fit_path: Path, campaign_id: str, out_dir: Path):
+    """Parse a campaign/tutorial .fit file into group and mission CSVs."""
+    sections = parse_fit(fit_path.read_text(encoding="utf-8", errors="replace"))
+
+    meta = sections.get("Campaign", {})
+    group_count = int(meta.get("GroupCount", 0))
+
+    group_rows = []
+    mission_rows = []
+
+    for g in range(group_count):
+        gs = sections.get(f"Group{g}", {})
+        row_key = f"{campaign_id}_G{g}"
+        group_rows.append({
+            "---":             row_key,
+            "CampaignID":      campaign_id,
+            "GroupIndex":      g,
+            "NumberToComplete": int(gs.get("NumberToComplete", 1)),
+            "MissionCount":    int(gs.get("MissionCount", 1)),
+            "OperationFile":   gs.get("OperationFile", ""),
+            "Video":           gs.get("Video", ""),
+            "PreVideo":        gs.get("PreVideo", ""),
+            "Tune":            int(gs.get("Tune", 0)),
+            "ABLScript":       gs.get("ABLScript", ""),
+        })
+
+        mission_count = int(gs.get("MissionCount", 1))
+        for m in range(mission_count):
+            ms = sections.get(f"Group{g}Mission{m}", {})
+            mission_rows.append({
+                "---":                f"{campaign_id}_G{g}_M{m}",
+                "CampaignID":         campaign_id,
+                "GroupIndex":         g,
+                "MissionIndex":       m,
+                "FileName":           ms.get("FileName", ""),
+                "Mandatory":          bool(ms.get("Mandatory", False)),
+                "PurchaseFile":       ms.get("PurchaseFile", ""),
+                "PlayLogistics":      bool(ms.get("PlayLogistics", True)),
+                "PlaySalvage":        bool(ms.get("PlaySalvage", True)),
+                "PlayPilotPromotion": bool(ms.get("PlayPilotPromotion", True)),
+                "PlayPurchasing":     bool(ms.get("PlayPurchasing", True)),
+                "PlaySelection":      bool(ms.get("PlaySelection", False)),
+                "Hidden":             bool(ms.get("Hidden", False)),
+                "VideoOverride":      ms.get("VideoOverride", ""),
+            })
+
+    tag = campaign_id.capitalize()
+    _write_csv(out_dir / f"DT_{tag}Groups.csv",   CAMPAIGN_GROUP_FIELDS,   group_rows)
+    _write_csv(out_dir / f"DT_{tag}Missions.csv",  CAMPAIGN_MISSION_FIELDS, mission_rows)
+    print(f"  DT_{tag}Groups.csv:   {len(group_rows)} groups")
+    print(f"  DT_{tag}Missions.csv: {len(mission_rows)} missions")
+
+
+# ---------------------------------------------------------------------------
+# Cameras/Cameras.fit -> DT_CameraSettings.csv
+# ---------------------------------------------------------------------------
+
+CAMERA_FIELDS = [
+    "---",
+    "ProjectionAngle", "PositionX", "PositionY", "PositionZ",
+    "LightRed", "LightGreen", "LightBlue",
+    "AmbientRed", "AmbientGreen", "AmbientBlue",
+    "SeenRed", "SeenGreen", "SeenBlue",
+    "BaseRed", "BaseGreen", "BaseBlue",
+    "LightDirPitch", "LightDirYaw",
+    "NewScale", "StartRotation",
+    "LODScale0", "LODScale1", "LODScale2",
+    "ElevationAdjustFactor", "ZoomMax", "ZoomMin",
+    "FogStart", "FogFull", "FogColor",
+]
+
+
+def _parse_cameras_fit(path: Path) -> dict:
+    """Custom parser for Cameras.fit — handles f[3] array syntax and ul prefix."""
+    kvs = {}
+    text = path.read_text(encoding="utf-8", errors="replace")
+    for raw in text.splitlines():
+        line = re.sub(r"//.*$", "", raw).strip()
+        if not line or line in ("FITini", "FITend", "FITEnd"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            continue
+
+        # f[3] LODScales = 1.0,0.5,0.3
+        m = re.match(r"^f\[\d+\]\s+(\w+)\s*=\s*(.+)$", line)
+        if m:
+            kvs[m.group(1)] = [float(x.strip()) for x in m.group(2).split(",")]
+            continue
+
+        # ul FogColor = 0xffa0a0a500
+        m = re.match(r"^(ul|uc|l|f|b|st)\s+(\w+)\s*=\s*(.+)$", line)
+        if m:
+            prefix, key, val = m.group(1), m.group(2), m.group(3).strip()
+            kvs[key] = _coerce_typed(prefix, val)
+            continue
+
+        m = re.match(r"^(\w+)\s*=\s*(.+)$", line)
+        if m:
+            kvs[m.group(1)] = _coerce(m.group(2).strip())
+
+    return kvs
+
+
+def convert_cameras(cameras_fit: Path, out_dir: Path):
+    kvs = _parse_cameras_fit(cameras_fit)
+    lod = kvs.get("LODScales", [1.0, 0.5, 0.3])
+    if not isinstance(lod, list):
+        lod = [1.0, 0.5, 0.3]
+
+    fog_raw = kvs.get("FogColor", 0)
+    fog_hex = f"0x{fog_raw:010X}" if isinstance(fog_raw, int) else str(fog_raw)
+
+    row = {
+        "---":                  "Default",
+        "ProjectionAngle":      float(kvs.get("ProjectionAngle", 35.0)),
+        "PositionX":            float(kvs.get("PositionX", 0.0)),
+        "PositionY":            float(kvs.get("PositionY", 0.0)),
+        "PositionZ":            float(kvs.get("PositionZ", 0.0)),
+        "LightRed":             int(kvs.get("LightRed", 255)),
+        "LightGreen":           int(kvs.get("LightGreen", 255)),
+        "LightBlue":            int(kvs.get("LightBlue", 255)),
+        "AmbientRed":           int(kvs.get("AmbientRed", 31)),
+        "AmbientGreen":         int(kvs.get("AmbientGreen", 31)),
+        "AmbientBlue":          int(kvs.get("AmbientBlue", 31)),
+        "SeenRed":              int(kvs.get("SeenRed", 0)),
+        "SeenGreen":            int(kvs.get("SeenGreen", 0)),
+        "SeenBlue":             int(kvs.get("SeenBlue", 255)),
+        "BaseRed":              int(kvs.get("BaseRed", 47)),
+        "BaseGreen":            int(kvs.get("BaseGreen", 47)),
+        "BaseBlue":             int(kvs.get("BaseBlue", 47)),
+        "LightDirPitch":        float(kvs.get("LightDirPitch", 22.5)),
+        "LightDirYaw":          float(kvs.get("LightDirYaw", -61.25)),
+        "NewScale":             float(kvs.get("NewScale", 0.8)),
+        "StartRotation":        float(kvs.get("StartRotation", 180.0)),
+        "LODScale0":            float(lod[0]) if len(lod) > 0 else 1.0,
+        "LODScale1":            float(lod[1]) if len(lod) > 1 else 0.5,
+        "LODScale2":            float(lod[2]) if len(lod) > 2 else 0.3,
+        "ElevationAdjustFactor": float(kvs.get("ElevationAdjustFactor", 150.0)),
+        "ZoomMax":              float(kvs.get("ZoomMax", 1.0)),
+        "ZoomMin":              float(kvs.get("ZoomMin", 0.1)),
+        "FogStart":             float(kvs.get("FogStart", 800.0)),
+        "FogFull":              float(kvs.get("FogFull", 250.0)),
+        "FogColor":             fog_hex,
+    }
+
+    _write_csv(out_dir / "DT_CameraSettings.csv", CAMERA_FIELDS, [row])
+    print("  DT_CameraSettings.csv: 1 row (default camera settings)")
+
+
+# ---------------------------------------------------------------------------
+# Cameras/Colors.fit -> DT_TeamColors.csv
+# ---------------------------------------------------------------------------
+
+TEAM_COLOR_FIELDS = ["---", "TableIndex", "ColorIndex", "ARGB", "A", "R", "G", "B"]
+
+
+def convert_colors(colors_fit: Path, out_dir: Path):
+    sections = parse_fit(colors_fit.read_text(encoding="utf-8", errors="replace"))
+
+    rows = []
+    meta = sections.get("Main", {})
+    num_tables = int(meta.get("NumTables", 0))
+
+    for t in range(num_tables):
+        table = sections.get(f"Table{t}", {})
+        # Colors are keyed Color0..Color55
+        idx = 0
+        while True:
+            key = f"Color{idx}"
+            if key not in table:
+                break
+            argb_int = int(table[key])
+            # ARGB packed as 0xAARRGGBB
+            a = (argb_int >> 24) & 0xFF
+            r = (argb_int >> 16) & 0xFF
+            g = (argb_int >> 8)  & 0xFF
+            b =  argb_int        & 0xFF
+            rows.append({
+                "---":        f"T{t}_C{idx:02d}",
+                "TableIndex": t,
+                "ColorIndex": idx,
+                "ARGB":       f"#{a:02X}{r:02X}{g:02X}{b:02X}",
+                "A":          a,
+                "R":          r,
+                "G":          g,
+                "B":          b,
+            })
+            idx += 1
+
+    _write_csv(out_dir / "DT_TeamColors.csv", TEAM_COLOR_FIELDS, rows)
+    print(f"  DT_TeamColors.csv: {len(rows)} color entries ({num_tables} tables)")
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -488,6 +707,8 @@ def main():
 
     objects_dir = Path(sys.argv[1])
     out_dir = Path(sys.argv[2])
+    # source_data_dir defaults to objects_dir/.. (i.e. Source/Data/)
+    data_dir = Path(sys.argv[3]) if len(sys.argv) > 3 else objects_dir.parent
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("Converting MC2 data to UE5 Data Table CSVs...")
@@ -501,6 +722,30 @@ def main():
     convert_mech_csvs(objects_dir, out_dir)
     convert_vehicle_fits(objects_dir, out_dir)
     convert_pilots(objects_dir, out_dir)
+
+    # Campaign data
+    campaign_fit = data_dir / "Campaign" / "campaign.fit"
+    tutorial_fit = data_dir / "Campaign" / "tutorial.fit"
+    if campaign_fit.exists():
+        convert_campaign(campaign_fit, "Campaign", out_dir)
+    else:
+        print(f"  WARNING: {campaign_fit} not found, skipping campaign")
+    if tutorial_fit.exists():
+        convert_campaign(tutorial_fit, "Tutorial", out_dir)
+    else:
+        print(f"  WARNING: {tutorial_fit} not found, skipping tutorial")
+
+    # Camera and color settings
+    cameras_fit = data_dir / "Cameras" / "Cameras.fit"
+    colors_fit  = data_dir / "Cameras" / "Colors.fit"
+    if cameras_fit.exists():
+        convert_cameras(cameras_fit, out_dir)
+    else:
+        print(f"  WARNING: {cameras_fit} not found, skipping camera settings")
+    if colors_fit.exists():
+        convert_colors(colors_fit, out_dir)
+    else:
+        print(f"  WARNING: {colors_fit} not found, skipping team colors")
 
     print(f"\nOutput written to: {out_dir}")
     print("Next step: import these CSVs into UE5 as Data Tables using the matching row structs.")

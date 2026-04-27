@@ -21,12 +21,18 @@ MODULE           = "MechCommander2"
 
 # CSV filename → (UE DataTable asset name, row struct class name)
 TABLE_MAP = {
-    "DT_Components.csv":    ("DT_Components",    "MC2ComponentRow"),
-    "DT_MechChassis.csv":   ("DT_MechChassis",   "MC2MechChassisRow"),
-    "DT_MechVariants.csv":  ("DT_MechVariants",  "MC2MechVariantRow"),
-    "DT_VehicleTypes.csv":  ("DT_VehicleTypes",  "MC2VehicleTypeRow"),
-    "DT_BuildingTypes.csv": ("DT_BuildingTypes", "MC2BuildingTypeRow"),
-    "DT_Pilots.csv":        ("DT_Pilots",        "MC2PilotRow"),
+    "DT_Components.csv":         ("DT_Components",        "MC2ComponentRow"),
+    "DT_MechChassis.csv":        ("DT_MechChassis",       "MC2MechChassisRow"),
+    "DT_MechVariants.csv":       ("DT_MechVariants",      "MC2MechVariantRow"),
+    "DT_VehicleTypes.csv":       ("DT_VehicleTypes",      "MC2VehicleTypeRow"),
+    "DT_BuildingTypes.csv":      ("DT_BuildingTypes",     "MC2BuildingTypeRow"),
+    "DT_Pilots.csv":             ("DT_Pilots",            "MC2PilotRow"),
+    "DT_CampaignGroups.csv":     ("DT_CampaignGroups",    "MC2CampaignGroupRow"),
+    "DT_CampaignMissions.csv":   ("DT_CampaignMissions",  "MC2CampaignMissionRow"),
+    "DT_TutorialGroups.csv":     ("DT_TutorialGroups",    "MC2CampaignGroupRow"),
+    "DT_TutorialMissions.csv":   ("DT_TutorialMissions",  "MC2CampaignMissionRow"),
+    "DT_CameraSettings.csv":     ("DT_CameraSettings",    "MC2CameraSettingsRow"),
+    "DT_TeamColors.csv":         ("DT_TeamColors",        "MC2TeamColorRow"),
 }
 
 
@@ -142,12 +148,18 @@ def run():
     if success > 0:
         print('[MC2DT] Data Tables are in Content Browser under Game/Data/')
     print('[MC2DT] Verify row counts match:')
-    print('[MC2DT]   DT_Components    ~80 rows')
-    print('[MC2DT]   DT_MechChassis   ~34 rows')
-    print('[MC2DT]   DT_MechVariants  ~42 rows')
-    print('[MC2DT]   DT_VehicleTypes  ~67 rows')
-    print('[MC2DT]   DT_BuildingTypes ~1088 rows')
-    print('[MC2DT]   DT_Pilots        ~51 rows')
+    print('[MC2DT]   DT_Components       ~80 rows')
+    print('[MC2DT]   DT_MechChassis      ~34 rows')
+    print('[MC2DT]   DT_MechVariants     ~42 rows')
+    print('[MC2DT]   DT_VehicleTypes     ~67 rows')
+    print('[MC2DT]   DT_BuildingTypes    ~1088 rows')
+    print('[MC2DT]   DT_Pilots           ~51 rows')
+    print('[MC2DT]   DT_CampaignGroups   13 rows')
+    print('[MC2DT]   DT_CampaignMissions 24 rows')
+    print('[MC2DT]   DT_TutorialGroups   1 row')
+    print('[MC2DT]   DT_TutorialMissions 5 rows')
+    print('[MC2DT]   DT_CameraSettings   1 row')
+    print('[MC2DT]   DT_TeamColors       112 rows (2 tables × 56 colors)')
 
 
 run()
